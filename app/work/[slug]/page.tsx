@@ -1,0 +1,121 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { PROJECTS, getProject, getProjectAccent } from "@/lib/projects";
+import { creativeWorkSchema } from "@/lib/jsonLd";
+import ProjectAnimator from "@/components/project/ProjectAnimator";
+import ProjectTopbar from "@/components/project/ProjectTopbar";
+import ProjectHeroBanner from "@/components/project/ProjectHeroBanner";
+import ProjectMeta from "@/components/project/ProjectMeta";
+import ProjectPrevNext from "@/components/project/ProjectPrevNext";
+import BottomStrip from "@/components/nav/BottomStrip";
+import MobileIndexSheet from "@/components/nav/MobileIndexSheet";
+
+/**
+ * Project case-study page at `/work/[slug]`.
+ *
+ * Statically generated at build time for every project — `generateStaticParams`
+ * yields one entry per project slug. Unknown slugs surface as 404.
+ *
+ * Composition:
+ *   • `ProjectTopbar` — sticky, with a horizontal scroll-strip switcher
+ *   • `ProjectHeroBanner` — coloured banner with title + 3-D mini canvas
+ *   • `PageEnter` — wraps the body so the stagger animation re-runs on every nav
+ *   • Breadcrumb + `ProjectMeta` (meta-grid + body + highlights + stack + link)
+ *   • `ProjectPrevNext` — wrapping prev/next pager
+ *
+ * The `key={slug}` on `PageEnter` forces a remount per route — which restarts the
+ * CSS stagger so it actually re-plays each time you navigate between projects.
+ */
+
+type RouteParams = { slug: string };
+
+export function generateStaticParams() {
+  return PROJECTS.map((project) => ({ slug: project.slug }));
+}
+
+export async function generateMetadata(
+  { params }: { params: Promise<RouteParams> },
+): Promise<Metadata> {
+  const { slug } = await params;
+  const project = getProject(slug);
+  if (!project) return { title: "Not found" };
+
+  const canonical = `/work/${project.slug}`;
+  const title = project.name;
+  const description = project.tagline;
+
+  return {
+    title,
+    description,
+    alternates: { canonical },
+    openGraph: {
+      type: "article",
+      url: canonical,
+      title,
+      description,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+    },
+  };
+}
+
+export default async function ProjectPage({ params }: { params: Promise<RouteParams> }) {
+  const { slug } = await params;
+  const project = getProject(slug);
+  // `notFound()` throws — the explicit return convinces TypeScript that the rest
+  // of this function only runs when `project` is defined.
+  if (!project) return notFound();
+
+  const accent = getProjectAccent(project.slug);
+
+  const schema = creativeWorkSchema(project);
+
+  return (
+    <div
+      className="project-page"
+      // Page-level accent — read by every nested rule (progress bar, status
+      // badge, section numbers, stack chips, CTA card). Single source of truth
+      // for the project's brand colour on the page.
+      style={{ "--accent": accent.hex } as React.CSSProperties}
+    >
+      {/*
+        Structured data — JSON-LD for this project (CreativeWork).
+        Content is JSON.stringify'd from typed project data with no user input
+        anywhere in the chain, so there's no XSS surface.
+      */}
+      <script type="application/ld+json">{JSON.stringify(schema)}</script>
+      <ProjectTopbar />
+
+      <ProjectAnimator routeKey={project.slug}>
+        <ProjectHeroBanner project={project} accent={accent} />
+
+        <div className="project-page-wrap">
+          <div className="project-page-crumb">
+            <Link href="/">home</Link>
+            <span aria-hidden="true">&nbsp;/&nbsp;</span>
+            <Link href="/work">work</Link>
+            <span aria-hidden="true">&nbsp;/&nbsp;</span>
+            <span>{project.slug}</span>
+          </div>
+
+          <ProjectMeta project={project} accent={accent} />
+
+          <ProjectPrevNext currentSlug={project.slug} />
+        </div>
+      </ProjectAnimator>
+
+      <footer className="project-page-footer">
+        Michael Vidal · Miami · open to remote
+      </footer>
+
+      {/* Persistent bottom nav — same pattern as the home page. The
+          MobileIndexSheet swaps in at ≤820px (see globals.css). */}
+      <BottomStrip activeSlug={project.slug} />
+      <MobileIndexSheet activeSlug={project.slug} />
+    </div>
+  );
+}

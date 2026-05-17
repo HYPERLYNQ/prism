@@ -1,7 +1,73 @@
 import type { NextConfig } from "next";
 
+/**
+ * Security headers applied to every response. Built as a single block so the
+ * policy is auditable in one place.
+ *
+ *   • Content-Security-Policy — restrict where scripts, styles, fonts, images
+ *     and connections can come from. `'unsafe-eval'` is unfortunately required
+ *     for Next.js's runtime hydration chunks; without it the app fails to
+ *     boot in some environments. `'unsafe-inline'` for styles is required
+ *     because Next's flushed-during-SSR `<style>` blocks have no nonce. A
+ *     nonce-based pipeline would be tighter but adds significant complexity.
+ *
+ *   • X-Frame-Options: DENY — disallow embedding the site in iframes; matches
+ *     the CSP `frame-ancestors 'none'` for older browsers.
+ *
+ *   • X-Content-Type-Options: nosniff — block MIME sniffing.
+ *
+ *   • Referrer-Policy: strict-origin-when-cross-origin — modern, safe default.
+ *
+ *   • Permissions-Policy — disable camera / microphone / geolocation; the site
+ *     never uses them.
+ *
+ *   • Strict-Transport-Security — only effective over HTTPS; harmless on
+ *     localhost (browsers ignore it on insecure origins). Two-year max-age +
+ *     `preload` so the domain can be submitted to the HSTS preload list.
+ */
+const cspDirectives = [
+  "default-src 'self'",
+  // `'unsafe-eval'` is required by Next.js hydration; `'unsafe-inline'` is required
+  // because Next inlines small bootstrap / chunk-loader scripts in every document.
+  // A nonce-based pipeline (Next middleware + nonce-threaded `<Script>` tags)
+  // would let us drop `'unsafe-inline'`; not worth the complexity for a static
+  // portfolio with no user input. Three.js's shader compile is a WebGL call
+  // (`gl.compileShader`) and is NOT blocked by `script-src` either way.
+  "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
+  // Next.js flushes critical CSS as inline <style> tags during SSR.
+  "style-src 'self' 'unsafe-inline'",
+  // `data:` covers any base64-inlined font payloads; `next/font` self-hosts.
+  "font-src 'self' data:",
+  "img-src 'self' data: blob:",
+  "connect-src 'self'",
+  "worker-src 'self' blob:",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+  "upgrade-insecure-requests",
+];
+
+const securityHeaders = [
+  { key: "Content-Security-Policy", value: cspDirectives.join("; ") },
+  { key: "X-Frame-Options", value: "DENY" },
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+  // Two years + preload — only effective once the site is served over HTTPS.
+  { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
+];
+
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Apply the security headers to every route.
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: securityHeaders,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

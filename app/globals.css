@@ -1,26 +1,1856 @@
+/*
+ * Global styles for the portfolio site.
+ *
+ * Layout of this file:
+ *   1. Tailwind import + design tokens (CSS custom properties on :root)
+ *   2. Base reset and document defaults
+ *   3. Hero scene container + canvas + background gradient
+ *   4. Hero overlay corners (top-left masthead, top-right status, bottom-left
+ *      blurb, bottom index strip) + their staggered fade-in
+ *   5. Hero look panel (the finish/colour picker)
+ *   6. Hero hint + loader + accessibility helpers
+ *   7. Responsive tweaks (≤820px)
+ *   8. Project sub-pages — topbar, body, meta-grid, highlights, stack chips,
+ *      prev/next nav, footer
+ *   9. Work index — the list of project cards
+ *
+ * Naming conventions:
+ *   • Class names are kebab-case.
+ *   • Hero overlay corners use `.corner-<tl|tr|bl>` (top-left / top-right / bottom-left).
+ *   • Picker inner classes use the `.lp-*` prefix (look-panel).
+ *   • Project-meta key/value labels use `.meta-key` / `.meta-val`.
+ *   • Work-item inner classes use the `.wi-*` prefix (work-item).
+ */
+
 @import "tailwindcss";
 
+/* ─────────────────────────────────────────────────────────────────────────
+ * 1. Design tokens
+ * ──────────────────────────────────────────────────────────────────────── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Refined-magazine palette — warm off-white page tone (#FAFAF7) with a
+   * cool ink (#0A0E14) for type. Slightly muted vs. pure-white/black; reads
+   * as a designed editorial system rather than a default Tailwind reset. */
+  --ink: #0A0E14;
+  --ink-2: rgba(10, 14, 20, 0.64);
+  --ink-3: rgba(10, 14, 20, 0.42);
+  --hair: rgba(10, 14, 20, 0.14);
+  --bg: #FAFAF7;
+  --bg-deep: #F0EFE8;
+
+  /* ── Ultrawide containment ─────────────────────────────────────────────
+   * On wide viewports (>1600px) the hero overlay corners and the persistent
+   * bottom strip stay anchored to a centred ~1600px column instead of
+   * drifting to the actual viewport edges. The WebGL hero scene still fills
+   * the full viewport — only the chrome is constrained.
+   *
+   * Usage pattern:
+   *   left:  max(var(--ui-edge), var(--ui-side-pad));
+   *   right: max(var(--ui-edge), var(--ui-side-pad));
+   *
+   * `--ui-side-pad` evaluates to negative on narrow viewports (<1600px), so
+   * `max()` falls back to `--ui-edge` there — the layout is unchanged below
+   * the cap. Above 1600px, the side padding grows so the content's inner
+   * edge tracks the centred max-width column.
+   */
+  --ui-max: 1600px;
+  --ui-edge: 30px;
+  --ui-side-pad: calc((100vw - var(--ui-max)) / 2 + var(--ui-edge));
+}
+body.dark {
+  /* Dark mode pairs with the `ink` swatch background. Type lifts to a warm
+   * paper-white (#F4F2EC) instead of pure white — sits more comfortably on
+   * the cool-ink background than a clinical #ffffff. */
+  --ink: #F4F2EC;
+  --ink-2: rgba(244, 242, 236, 0.66);
+  --ink-3: rgba(244, 242, 236, 0.42);
+  --hair: rgba(244, 242, 236, 0.16);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/* ─────────────────────────────────────────────────────────────────────────
+ * 2. Base
+ * ──────────────────────────────────────────────────────────────────────── */
+* { box-sizing: border-box; }
+html, body { height: 100%; width: 100%; }
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  overflow-x: hidden;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  -webkit-font-smoothing: antialiased;
+  transition: background 0.5s ease;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * 3. Hero — root container and the WebGL canvas
+ * ──────────────────────────────────────────────────────────────────────── */
+.hero-root {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+}
+/* A subtle dot-grid texture + radial soft-vignette behind the canvas. */
+.hero-root::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(rgba(255, 255, 255, 0.04) 0.5px, transparent 0.7px) 0 0 / 3px 3px,
+    radial-gradient(ellipse 75% 65% at 50% 42%,
+      color-mix(in srgb, var(--bg) 92%, white) 0%,
+      var(--bg) 38%,
+      var(--bg-deep) 100%);
+}
+.hero-canvas {
+  position: fixed;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * 4. Hero overlay — corners + bottom strip + staggered fade-in
+ * ──────────────────────────────────────────────────────────────────────── */
+.ui {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+/* Links and buttons inside the overlay get pointer events back (the .ui container is fully see-through). */
+.ui a,
+.ui button {
+  pointer-events: auto;
+}
+
+/* Each corner block rises + fades in once the scene is ready. The stagger gives
+ * the entrance a beat. Scoped to `.ui` so the same elements (.strip / .mob-bar)
+ * render visibly by default on project pages — those don't have a `.ui` wrapper
+ * because they don't share the hero's load-in choreography. */
+.ui .corner-tl,
+.ui .corner-tr,
+.ui .corner-bl,
+.ui .strip,
+.ui .mob-bar {
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity 0.9s ease,
+    transform 0.9s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.ui.in .corner-tl { opacity: 1; transform: none; transition-delay: 0.35s; }
+.ui.in .corner-tr { opacity: 1; transform: none; transition-delay: 0.50s; }
+.ui.in .corner-bl { opacity: 1; transform: none; transition-delay: 0.64s; }
+.ui.in .strip     { opacity: 1; transform: none; transition-delay: 0.78s; }
+.ui.in .mob-bar   { opacity: 1; transform: none; transition-delay: 0.78s; }
+
+/* Top-left: masthead + look picker. Left edge anchored to the centred
+ * ultrawide column on wide viewports (see `--ui-side-pad`). */
+.corner-tl {
+  position: fixed;
+  top: 26px;
+  left: max(var(--ui-edge), var(--ui-side-pad));
+  max-width: 380px;
+}
+/* A soft bg-coloured halo keeps the overlay text legible when the 3-D type swings behind it. */
+.corner-tl .masthead,
+.corner-tr .status,
+.corner-bl p {
+  text-shadow: 0 0 8px var(--bg);
+}
+.corner-tl .masthead {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+.corner-tl .wm {
+  font-family: var(--font-grotesk), sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.3em;
+  color: var(--ink);
+}
+.corner-tl .m-sep {
+  color: var(--ink-3);
+  font-size: 11px;
+}
+.corner-tl .m-role {
+  font: 500 10px/1 var(--font-mono), monospace;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+/* Top-right: status badge. Right edge anchored to the centred ultrawide column. */
+.corner-tr {
+  position: fixed;
+  top: 26px;
+  right: max(var(--ui-edge), var(--ui-side-pad));
+}
+.status {
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  color: var(--ink-2);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: blink 1.9s infinite ease-in-out;
+}
+@keyframes blink {
+  0%, 100% { opacity: 0.3; }
+  50%      { opacity: 1; }
+}
+
+/* Bottom-left: short blurb above the index strip. Same ultrawide anchor as top-left. */
+.corner-bl {
+  position: fixed;
+  bottom: 64px;
+  left: max(var(--ui-edge), var(--ui-side-pad));
+  max-width: 64ch;
+}
+.corner-bl p {
+  font-size: 11.5px;
+  line-height: 1.65;
+  color: var(--ink-2);
+}
+.corner-bl p b {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+/* Bottom strip — WORK label + project links on the left, contact + location on
+ * the right. Background spans the full viewport (the gradient veil should
+ * reach the screen edges) but the content's left/right padding tracks the
+ * centred ultrawide column so the strip-l and strip-r groups don't drift
+ * across an empty middle on wide monitors. */
+.strip {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 22px;
+  padding-top: 14px;
+  padding-bottom: 15px;
+  padding-left: max(var(--ui-edge), var(--ui-side-pad));
+  padding-right: max(var(--ui-edge), var(--ui-side-pad));
+  border-top: 1px solid var(--hair);
+  background: linear-gradient(to top,
+    var(--bg) 0%,
+    var(--bg) 62%,
+    color-mix(in srgb, var(--bg) 80%, transparent) 100%);
+}
+.strip-l {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+.strip-label {
+  flex: 0 0 auto;
+  font: 600 9px/1 var(--font-mono), monospace;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.work-links {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0 2px;
+  font-size: 14.5px;
+}
+.work-links a {
+  color: var(--ink);
+  text-decoration: none;
+  white-space: nowrap;
+  font-weight: 500;
+  padding: 2px 4px 3px;
+  border-radius: 4px;
+  border-bottom: 1.5px solid color-mix(in srgb, var(--ink) 32%, transparent);
+  transition: border-color 0.15s, background 0.15s;
+}
+.work-links a:hover {
+  border-bottom-color: var(--ink);
+  background: color-mix(in srgb, var(--ink) 7%, transparent);
+}
+/* Current project (set on `/work/[slug]`) — bolder underline + heavier weight. */
+.work-links a.is-active {
+  border-bottom-color: var(--ink);
+  font-weight: 600;
+}
+.work-links .sep {
+  color: var(--ink-3);
+  margin: 0 5px;
+}
+.strip-r {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  white-space: nowrap;
+  font-size: 11.5px;
+}
+.strip-r a {
+  color: var(--ink-2);
+  text-decoration: none;
+  letter-spacing: 0.03em;
+  border-bottom: 1px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+.strip-r a:hover {
+  color: var(--ink);
+  border-bottom-color: var(--ink-3);
+}
+.strip-r .sep { color: var(--ink-3); }
+.strip-r .loc {
+  color: var(--ink-3);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-size: 9px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * 5. Hero look panel — the picker
+ * ──────────────────────────────────────────────────────────────────────── */
+.lookbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 13px;
+  padding: 5px 9px 5px 7px;
+  border: 1px solid var(--hair);
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+  font: 500 9px/1 var(--font-mono), monospace;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  transition: color 0.18s, border-color 0.18s;
+}
+.lookbtn:hover {
+  color: var(--ink);
+  border-color: var(--ink-3);
+}
+.lookbtn .caret {
+  font-size: 7px;
+  opacity: 0.6;
+  transition: transform 0.2s;
+}
+.lookbtn[aria-expanded="true"] .caret {
+  transform: rotate(180deg);
+}
+
+/* The little colour-dot inside the lookbtn — its background is set via the
+ * `--dot-color` custom property written inline on the element. */
+.lookdot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--dot-color, #fafcff);
+  box-shadow: 0 0 0 1px var(--hair) inset;
+}
+
+.lookpanel {
+  margin-top: 10px;
+  width: max-content;
+  max-width: 340px;
+  padding: 14px 14px 12px;
+  border: 1px solid var(--hair);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bg) 78%, white 22%);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.1);
+  opacity: 0;
+  transform: translateY(-6px);
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 0.22s ease,
+    transform 0.22s ease,
+    visibility 0s linear 0.22s;
+}
+body.dark .lookpanel {
+  background: color-mix(in srgb, var(--bg) 60%, white 4%);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.4);
+}
+.lookpanel.open {
+  opacity: 1;
+  transform: translateY(0);
+  visibility: visible;
+  pointer-events: auto;
+  transition: opacity 0.22s ease, transform 0.22s ease;
+}
+.lp-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+}
+.lp-row + .lp-row {
+  margin-top: 13px;
+  padding-top: 13px;
+  border-top: 1px solid var(--hair);
+}
+.lp-lbl {
+  font: 500 8px/1 var(--font-mono), monospace;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  width: 46px;
+  flex: 0 0 46px;
+  padding-top: 5px;
+}
+.lp-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.lp-sw {
+  display: grid;
+  grid-template-columns: repeat(7, 14px);
+  gap: 7px;
+}
+
+/* Colour swatch — `background` and `color` consume the `--sw` custom property
+ * written inline by the React component. The active state ring also reads `--sw`. */
+.sw {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1.5px solid color-mix(in srgb, var(--ink) 14%, transparent);
+  cursor: pointer;
+  padding: 0;
+  background: var(--sw, transparent);
+  color: var(--sw, transparent);
+  transition: transform 0.15s, box-shadow 0.2s;
+}
+.sw:hover { transform: scale(1.18); }
+.sw[aria-pressed="true"] {
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 3.5px var(--ink);
+  transform: scale(1.1);
+}
+
+/* Finish chip — text-only button. */
+.mb {
+  font: 500 8.5px/1 var(--font-mono), monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  background: transparent;
+  border: 1px solid var(--hair);
+  padding: 5px 8px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.mb:hover {
+  color: var(--ink);
+  border-color: var(--ink-3);
+}
+.mb[aria-pressed="true"] {
+  color: var(--ink);
+  border-color: var(--ink);
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * 6. Hint, loader, screen-reader-only text
+ * ──────────────────────────────────────────────────────────────────────── */
+.hint {
+  position: fixed;
+  left: 50%;
+  bottom: 58px;
+  transform: translateX(-50%) translateY(8px);
+  font-size: 8px;
+  letter-spacing: 0.32em;
+  color: var(--ink-3);
+  text-transform: uppercase;
+  pointer-events: none;
+  opacity: 0;
+  transition:
+    opacity 0.9s ease,
+    transform 0.9s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.hint.in {
+  opacity: 0.6;
+  transform: translateX(-50%) translateY(0);
+  transition-delay: 1s;
+}
+.hint.gone {
+  opacity: 0;
+  transition-delay: 0s;
+}
+
+.loader {
+  position: fixed;
+  inset: 0;
+  z-index: 6;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  letter-spacing: 0.36em;
+  color: rgba(0, 0, 0, 0.35);
+  text-transform: uppercase;
+  transition: opacity 0.8s ease;
+}
+.loader.gone {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * 6b. MobileIndexSheet — slim bar (collapsed) + full bottom sheet (expanded)
+ *
+ * The desktop `.strip` is hidden at ≤820px and these elements appear in its
+ * place. Above 820px, both `.mob-bar` and `.mob-sheet` are `display: none`
+ * by default — the `@media (max-width: 820px)` block below flips them on.
+ *
+ * Markup is owned by `components/hero/MobileIndexSheet.tsx`.
+ * ──────────────────────────────────────────────────────────────────────── */
+
+/* Default: hidden. The mobile media query enables them. */
+.mob-bar,
+.mob-sheet { display: none; }
+
+/* ── Collapsed bar — sits flush at the bottom of the viewport. ── */
+.mob-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 4;
+  width: 100%;
+  height: calc(52px + env(safe-area-inset-bottom, 0));
+  padding: 0 18px env(safe-area-inset-bottom, 0);
+  align-items: center;
+  gap: 9px;
+  border: 0;
+  border-top: 1px solid var(--hair);
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  color: var(--ink);
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  cursor: pointer;
+  pointer-events: auto;
+  /* The bar joins the corner-block fade-in stagger (see `.ui.in .mob-bar`). */
+}
+.mob-bar:hover { background: color-mix(in srgb, var(--bg) 94%, transparent); }
+.mob-bar-brand {
+  font-family: var(--font-grotesk), sans-serif;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.28em;
+}
+.mob-bar-divider { color: var(--ink-3); }
+.mob-bar-label {
+  font: 600 9px/1 var(--font-mono), monospace;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+.mob-bar-count {
+  font: 500 11px/1 var(--font-mono), monospace;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.mob-bar-spacer { flex: 1 1 auto; }
+.mob-bar-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--hair);
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1;
+  transition: transform 0.2s ease, background 0.15s, border-color 0.15s;
+}
+.mob-bar:hover .mob-bar-arrow,
+.mob-bar:active .mob-bar-arrow {
+  transform: translateY(-2px);
+  border-color: var(--ink-3);
+  background: color-mix(in srgb, var(--ink) 5%, transparent);
+}
+
+/* ── Expanded sheet — overlays the whole viewport with a backdrop + panel. ── */
+.mob-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 8;
+  pointer-events: none;
+}
+.mob-sheet.is-open { pointer-events: auto; }
+.mob-sheet-backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  background: color-mix(in srgb, var(--bg) 50%, black 50%);
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity 0.32s ease;
+  /* The global `.ui button { pointer-events: auto }` has higher specificity
+   * than `.mob-sheet-backdrop` and would otherwise make this invisible
+   * backdrop intercept clicks on the collapsed bar beneath it. Force the
+   * closed-state value, then re-enable when the sheet opens. */
+  pointer-events: none !important;
+}
+.mob-sheet.is-open .mob-sheet-backdrop {
+  opacity: 0.55;
+  pointer-events: auto !important;
+}
+
+.mob-sheet-panel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  /* Height is sized to the content but capped so the very top of the scene
+     stays visible — the user sees they're still on the home page. */
+  max-height: calc(100dvh - 56px);
+  display: flex;
+  flex-direction: column;
+  padding: 14px 22px calc(20px + env(safe-area-inset-bottom, 0));
+  background: var(--bg);
+  border-top: 1px solid var(--hair);
+  border-radius: 22px 22px 0 0;
+  box-shadow: 0 -22px 50px rgba(0, 0, 0, 0.18);
+  transform: translateY(100%);
+  transition: transform 0.42s cubic-bezier(0.2, 0.85, 0.25, 1);
+  overscroll-behavior: contain;
+}
+body.dark .mob-sheet-panel {
+  background: color-mix(in srgb, var(--bg) 88%, white 4%);
+  box-shadow: 0 -22px 60px rgba(0, 0, 0, 0.45);
+}
+.mob-sheet.is-open .mob-sheet-panel { transform: translateY(0); }
+
+.mob-sheet-grabber {
+  display: block;
+  width: 44px;
+  height: 4px;
+  margin: 0 auto 14px;
+  border-radius: 999px;
+  background: var(--hair);
+}
+
+.mob-sheet-header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 0 2px 14px;
+  border-bottom: 1px solid var(--hair);
+}
+.mob-sheet-eyebrow {
+  font: 600 10px/1 var(--font-mono), monospace;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.mob-sheet-eyebrow-count {
+  font: 500 9.5px/1 var(--font-mono), monospace;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  flex: 1 1 auto;
+}
+.mob-sheet-close {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--hair);
+  background: transparent;
+  color: var(--ink);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.mob-sheet-close:hover {
+  border-color: var(--ink-3);
+  background: color-mix(in srgb, var(--ink) 5%, transparent);
+}
+
+/* The editorial project list — scrollable when content overflows. */
+.mob-sheet-list {
+  list-style: none;
+  padding: 4px 0 0;
+  margin: 0;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  /* Soft fade at the bottom of the list when it overflows. */
+  mask-image: linear-gradient(to bottom, black 0, black calc(100% - 24px), transparent);
+  -webkit-mask-image: linear-gradient(to bottom, black 0, black calc(100% - 24px), transparent);
+}
+.mob-sheet-item {
+  position: relative;
+  border-bottom: 1px solid var(--hair);
+}
+.mob-sheet-item:last-child { border-bottom: 0; }
+/* Current project (set on `/work/[slug]`) — accent bar pinned to full size,
+ * row background lightly tinted to match. */
+.mob-sheet-item.is-active::before {
+  transform: scaleY(1);
+  opacity: 1;
+}
+.mob-sheet-item.is-active .mob-sheet-link {
+  background: color-mix(in srgb, var(--accent, var(--ink)) 7%, transparent);
+}
+/* The left accent bar — animates in on tap. Colour is supplied by the
+ * `--accent` custom property written inline on the <li>. */
+.mob-sheet-item::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 14px;
+  bottom: 14px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--accent, var(--ink-3));
+  opacity: 0.7;
+  transform: scaleY(0.6);
+  transform-origin: center;
+  transition: transform 0.25s ease, opacity 0.25s;
+}
+.mob-sheet-item:active::before {
+  transform: scaleY(1);
+  opacity: 1;
+}
+.mob-sheet-link {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  gap: 4px 14px;
+  align-items: baseline;
+  padding: 18px 6px 18px 14px;
+  text-decoration: none;
+  color: var(--ink);
+  min-height: 56px;
+  transition: padding-left 0.18s ease, background 0.15s;
+}
+.mob-sheet-link:active {
+  padding-left: 18px;
+  background: color-mix(in srgb, var(--accent, var(--ink)) 8%, transparent);
+}
+.mob-sheet-num {
+  font: 500 11px/1 var(--font-mono), monospace;
+  letter-spacing: 0.06em;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+  align-self: start;
+  padding-top: 6px;
+}
+.mob-sheet-body {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.mob-sheet-name {
+  font-family: var(--font-grotesk), sans-serif;
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: -0.01em;
+  line-height: 1.05;
+  color: var(--ink);
+}
+.mob-sheet-tag {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ink-2);
+  /* Two-line clamp so long taglines don't blow the row out. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.mob-sheet-year {
+  font: 500 10px/1 var(--font-mono), monospace;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  white-space: nowrap;
+  align-self: start;
+  padding-top: 8px;
+}
+
+.mob-sheet-foot {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 2px 0;
+  border-top: 1px solid var(--hair);
+}
+.mob-sheet-foot-links {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 12px;
+}
+.mob-sheet-foot-links a {
+  color: var(--ink);
+  text-decoration: none;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--ink-3);
+  transition: border-color 0.15s;
+}
+.mob-sheet-foot-links a:hover { border-bottom-color: var(--ink); }
+.mob-sheet-foot-sep { color: var(--ink-3); }
+.mob-sheet-foot-loc {
+  font: 500 9.5px/1 var(--font-mono), monospace;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * 7. Hero responsive — narrow viewports (≤820px / ≤600px / ≤480px)
+ *
+ * Three tiers:
+ *   • ≤820px — tablet/landscape phone: tighten spacing, swap the desktop
+ *     strip for the MobileIndexSheet bar + sheet pattern.
+ *   • ≤600px — portrait phone: hide the "AI Engineer" subtitle (kept only
+ *     the name lockup), shrink the status, switch the look panel to a
+ *     bottom-sheet pattern with bigger tap-target swatches.
+ *   • ≤480px — small phones: shrink the masthead a little more.
+ *
+ * Default (>820px) hides the mobile bar + sheet entirely — see the
+ * MobileIndexSheet styles block further down.
+ * ──────────────────────────────────────────────────────────────────────── */
+@media (max-width: 820px) {
+  /* Cleaner masthead on narrow widths — only the brand mark shows so the
+     top-right status badge has room without colliding. */
+  .corner-tl .m-sep,
+  .corner-tl .m-role { display: none; }
+
+  .corner-bl {
+    max-width: none;
+    right: 18px;
+    left: 18px;
+    /* Sits comfortably above the collapsed mobile bar (52px tall + 18px breathing room). */
+    bottom: 88px;
+    font-size: 11px;
+  }
+  .hint { display: none; }
+
+  /* Bigger picker swatches for touch — even before the full bottom-sheet pattern
+     kicks in at ≤600. */
+  .lp-sw { grid-template-columns: repeat(7, 20px); gap: 8px; }
+  .sw { width: 20px; height: 20px; }
+  .lookpanel { max-width: 320px; }
+  .lookbtn { padding: 7px 11px 7px 9px; font-size: 10px; }
+
+  /* Hide the desktop strip; the MobileIndexSheet bar / sheet replaces it.
+     `!important` here defeats Tailwind v4's PostCSS pass occasionally
+     deduping conflicting display-property declarations across media-query
+     boundaries (the default `display: none` outside the media query
+     otherwise wins by source-order). */
+  .strip { display: none !important; }
+  .mob-bar { display: flex !important; }
+  .mob-sheet { display: block !important; }
+}
+
+@media (max-width: 600px) {
+  /* Top-left: brand-only (subtitle already hidden at ≤820). Tighter inset. */
+  .corner-tl {
+    top: 18px;
+    left: 18px;
+    max-width: calc(100% - 36px);
+  }
+  .corner-tl .wm { font-size: 12px; letter-spacing: 0.26em; }
+
+  /* Top-right: smaller status text + same edge inset as the masthead. */
+  .corner-tr { top: 18px; right: 18px; }
+  .status { font-size: 9.5px; letter-spacing: 0.1em; }
+
+  /* Bottom-left blurb: tighter inset + smaller font. */
+  .corner-bl {
+    left: 18px;
+    right: 18px;
+    bottom: 130px;
+    font-size: 10.5px;
+  }
+
+  /* Bottom strip: edge-to-edge with tighter padding. */
+  .strip { padding: 10px 18px 12px; }
+  .work-links { font-size: 13px; }
+
+  /* Bottom-sheet picker: full-width slide-up panel with big tap targets. */
+  .lookpanel {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: auto;
+    max-width: none;
+    margin-top: 0;
+    padding: 20px 22px calc(22px + env(safe-area-inset-bottom, 0));
+    border: none;
+    border-top: 1px solid var(--hair);
+    border-radius: 16px 16px 0 0;
+    transform: translateY(100%);
+  }
+  .lookpanel.open { transform: translateY(0); }
+  .lp-row { flex-direction: column; gap: 8px; align-items: flex-start; }
+  .lp-row + .lp-row { margin-top: 14px; padding-top: 14px; }
+  .lp-lbl { width: auto; flex: 0 0 auto; padding-top: 0; }
+  .lp-sw { grid-template-columns: repeat(7, 28px); gap: 10px; }
+  .sw { width: 28px; height: 28px; }
+  .mb { padding: 8px 12px; font-size: 10px; }
+}
+
+@media (max-width: 480px) {
+  .corner-tl .wm { font-size: 11px; letter-spacing: 0.22em; }
+  .status { font-size: 9px; }
+  .lp-sw { grid-template-columns: repeat(6, 28px); }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * 8. Project pages — shell, topbar, switcher, banner, content, pager, footer
+ * ──────────────────────────────────────────────────────────────────────── */
+
+/* Outer container (used by both /work and /work/[slug]). The bottom padding
+ * leaves room for the fixed BottomStrip (~56px on desktop) plus the mobile
+ * bar (~52px) — see overrides in the media queries below. */
+.project-page {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 72px;
+}
+
+/* Sticky top bar — name lockup, project switcher, secondary nav. */
+/* Slim sticky brand header on `/work` and `/work/[slug]`. Just the
+ * "MICHAEL VIDAL" lockup — the project switcher lives in the persistent BottomStrip, same
+ * place it lives on the home page. Left padding tracks the ultrawide column
+ * so the brand stays aligned with the body content below. */
+.page-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  padding-top: 14px;
+  padding-bottom: 14px;
+  padding-left: max(24px, var(--ui-side-pad));
+  padding-right: max(24px, var(--ui-side-pad));
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--hair);
+}
+.page-topbar-home {
+  font-family: var(--font-grotesk), sans-serif;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.3em;
+  color: var(--ink);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+/* Coloured banner at the top of a project page. The flat gradient base sits
+ * below the animated mesh (see `.project-hero-mesh*` below) — together they
+ * give the banner depth without recycling the home page's 3-D debris cloud. */
+.project-hero-banner {
+  position: relative;
+  background: linear-gradient(135deg, var(--banner-accent) 0%, var(--banner-accent-deep) 100%);
+  /* Banner text is ALWAYS white, regardless of accent lightness — looks
+   * cohesive across the project set instead of some banners reading dark-on-
+   * light and others light-on-dark. Light accents like gold-leaf still hold
+   * up because the gradient ramps to `--banner-accent-deep` (much darker),
+   * and the title is large-bold display type so it clears the WCAG AA
+   * large-text threshold (3:1) on every accent in the palette.
+   *
+   * No `!important` needed: `.project-hero-banner` (line ~1001) declares its
+   * own color AFTER `.project-page { color: var(--ink) }` (line ~959) in the
+   * source, and inheritance through the banner subtree picks white up
+   * naturally. */
+  color: #ffffff;
+  overflow: hidden;
+  isolation: isolate; /* stacks the mesh's blend-modes below the title */
+}
+/* Banner content shares the same wrap width AND horizontal padding as
+ * `.project-page-wrap` (1080px max / 36px gutters) so the title's left edge
+ * lines up exactly with the breadcrumb, meta grid and section labels below.
+ * The banner background still spans full-viewport — only this inner column
+ * is constrained. */
+.project-hero-banner-inner {
+  position: relative;
+  z-index: 2;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 80px 36px 88px;
+  min-height: 300px;
+}
+.project-hero-banner-text { position: relative; }
+.project-hero-banner-eyebrow {
+  font: 500 10px/1.2 var(--font-mono), monospace;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  opacity: 0.78;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.project-hero-banner-sep { opacity: 0.5; }
+.project-hero-banner-title {
+  font-family: var(--font-grotesk), sans-serif;
+  font-weight: 700;
+  /* Responsive scale: 34px floor (so it fits a 320px-wide screen), tracks
+   * 7vw in the middle, caps at 76px so 17-char names like "wholesale-harmony"
+   * always fit the 1080px container without wrapping. */
+  font-size: clamp(34px, 7vw, 76px);
+  line-height: 1;
+  letter-spacing: -0.015em;
+  margin: 14px 0 18px;
+  /* Each character is wrapped in a clip-box (`.char-mask`) so GSAP can
+   * slide the glyph in from below the line for the cinematic letter-reveal.
+   * `flex-wrap: nowrap` is critical: without it, the wrap algorithm treats
+   * every `.char-mask` as a flex item and happily breaks mid-word (e.g.
+   * "wholesale-harmon" / "y"). With `nowrap`, the title stays one line
+   * and the responsive font-size keeps it within the container. */
+  display: inline-flex;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  max-width: 100%;
+}
+.project-hero-banner-title .char-mask {
+  display: inline-block;
+  overflow: hidden;
+  /* Mask height grows with the title's line-box. `vertical-align: bottom`
+   * keeps the underlying glyph baseline-aligned with neighbouring chars. */
+  vertical-align: bottom;
+  line-height: 1;
+}
+.project-hero-banner-title .char {
+  display: inline-block;
+  /* GSAP animates `transform: translateY()`; this default position is the
+   * "settled" state. The animator pushes them down 110% pre-reveal. */
+  will-change: transform;
+}
+.project-hero-banner-tagline {
+  font-family: var(--font-grotesk), sans-serif;
+  font-size: 17px;
+  line-height: 1.5;
+  letter-spacing: -0.005em;
+  max-width: 56ch;
+  opacity: 0.88;
+}
+
+/* ── ProjectBlobBanner — raymarched SDF metaball blob in the banner ──
+ *
+ * Wraps the WebGL canvas spawned by `ProjectBlobBanner.tsx`. The canvas
+ * itself is `position: absolute; inset: 0` (set inline by the component);
+ * this wrapper provides the positioning context and sits in the same
+ * z-stack as the old `.project-hero-mesh`, behind the title content. */
+.project-hero-blob {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* ── ProjectGradientMesh — legacy animated CSS gradient mesh (kept for fallback)──
+ * Three blurred blobs drift on overlapping keyframes. Tuning notes:
+ *   • Durations are short enough (14–18s) that the motion is obvious without
+ *     watching for a full cycle.
+ *   • Translate amplitudes (~30–40%) are big enough that the blobs visibly
+ *     sweep through the banner area, not just nudge at the edges.
+ *   • Each blob starts at a different position AND uses `animation-delay` per
+ *     project seed, so no two projects look identical at any moment.
+ *   • `mix-blend-mode: screen` lifts the accent into highlights without going
+ *     desaturated; `filter: blur` softens the edges into a true mesh feel.
+ */
+.project-hero-mesh {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.project-hero-mesh-blob {
+  position: absolute;
+  width: 60%;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  filter: blur(50px);
+  mix-blend-mode: screen;
+  will-change: transform;
+  animation-delay: var(--mesh-delay, 0s);
+}
+.project-hero-mesh-blob-a {
+  top: -20%;
+  left: -15%;
+  background: color-mix(in srgb, var(--mesh-accent) 50%, white);
+  opacity: 0.85;
+  /* `infinite` rather than `alternate` lets the keyframe define a full loop
+   * (start === end position), so the blob traces a smooth curved orbit
+   * instead of bouncing back along the same line. */
+  animation: project-hero-mesh-a 11s ease-in-out infinite;
+}
+.project-hero-mesh-blob-b {
+  top: 10%;
+  right: -20%;
+  background: var(--mesh-accent-deep);
+  opacity: 0.75;
+  animation: project-hero-mesh-b 13s ease-in-out infinite;
+}
+.project-hero-mesh-blob-c {
+  bottom: -25%;
+  left: 25%;
+  background: color-mix(in srgb, var(--mesh-accent) 25%, white);
+  opacity: 0.75;
+  animation: project-hero-mesh-c 9s ease-in-out infinite;
+}
+/* A faint grain veil — adds editorial texture and breaks the gradient into
+ * something photographic rather than glassy. Pure CSS via stacked radial
+ * gradients (cheap, no asset). */
+.project-hero-mesh-grain {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(rgba(255, 255, 255, 0.03) 0.6px, transparent 0.8px),
+    radial-gradient(rgba(0, 0, 0, 0.04) 0.6px, transparent 0.8px);
+  background-size: 3px 3px, 5px 5px;
+  background-position: 0 0, 1px 1px;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+  opacity: 0.5;
+}
+/* Each keyframe loops through 4 stops so the blob orbits in a curved path
+ * (loop closes — `0%` and `100%` match). Translate amplitudes are big
+ * (50-65%) so the motion is unmistakable. */
+@keyframes project-hero-mesh-a {
+  0%   { transform: translate3d(0, 0, 0)      scale(1);    }
+  33%  { transform: translate3d(55%, 20%, 0)  scale(1.25); }
+  66%  { transform: translate3d(30%, 50%, 0)  scale(0.95); }
+  100% { transform: translate3d(0, 0, 0)      scale(1);    }
+}
+@keyframes project-hero-mesh-b {
+  0%   { transform: translate3d(0, 0, 0)        scale(1.1);  }
+  33%  { transform: translate3d(-50%, 35%, 0)   scale(0.85); }
+  66%  { transform: translate3d(-25%, -15%, 0)  scale(1.3);  }
+  100% { transform: translate3d(0, 0, 0)        scale(1.1);  }
+}
+@keyframes project-hero-mesh-c {
+  0%   { transform: translate3d(0, 0, 0)         scale(1);    }
+  33%  { transform: translate3d(-40%, -45%, 0)   scale(1.2);  }
+  66%  { transform: translate3d(40%, -25%, 0)    scale(0.9);  }
+  100% { transform: translate3d(0, 0, 0)         scale(1);    }
+}
+/* Respect users who'd rather not see motion. */
+@media (prefers-reduced-motion: reduce) {
+  .project-hero-mesh-blob { animation: none; }
+}
+
+/* Body wrap — narrow column for content blocks. */
+/* Project pages use a wider wrap than the original (760px) so each section
+ * can split into a two-column grid: a small label column on the left and
+ * a body column on the right. See `.project-section` below. */
+.project-page-wrap {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 56px 36px 96px;
+  width: 100%;
+}
+.project-page-wrap-wide { max-width: 1080px; }
+.project-page-crumb {
+  font-size: 10px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-bottom: 18px;
+}
+.project-page-crumb a {
+  color: var(--ink-3);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+.project-page-crumb a:hover { color: var(--ink); }
+
+/* Meta-grid card — year / role / built-with key-value pairs */
+/* Meta grid sits ABOVE the section two-column grid and spans the full
+ * width of the project-page-wrap so it reads as the page's spec sheet. */
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 28px 56px;
+  margin: 0;
+  padding: 26px 0 30px;
+  border-top: 1px solid var(--hair);
+  border-bottom: 1px solid var(--hair);
+}
+.meta-key {
+  font-size: 9px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-bottom: 7px;
+}
+.meta-val { font-size: 13px; color: var(--ink); }
+
+/* Body paragraphs */
+.body p {
+  font-size: 14.5px;
+  line-height: 1.75;
+  color: var(--ink-2);
+  margin: 18px 0;
+}
+.body p b,
+.body p strong {
+  color: var(--ink);
+  font-weight: 500;
+}
+.body a {
+  color: var(--ink);
+  text-decoration: none;
+  border-bottom: 1px solid var(--ink-3);
+  transition: border-color 0.15s;
+}
+.body a:hover { border-bottom-color: var(--ink); }
+
+/* (legacy `.project-page h2` rule removed — every `<h2>` in a project page
+ * now uses `.project-section-title`, which has its own typography. Leaving
+ * the legacy rule in place caused a specificity collision: `.project-page
+ * h2` is (0,0,1,1) and beats `.project-section-title` (0,0,1,0).) */
+
+/* Highlights — bulleted list. `highlights-arrows` swaps the bullet for `→`. */
+ul.highlights {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+ul.highlights li {
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--ink-2);
+  padding: 12px 0 12px 26px;
+  border-bottom: 1px solid var(--hair);
+  position: relative;
+}
+ul.highlights li::before {
+  content: "·";
+  position: absolute;
+  left: 6px;
+  color: var(--ink-3);
+}
+ul.highlights-arrows li::before {
+  content: "→";
+  left: 0;
+  top: 12px;
+  color: var(--ink-3);
+  font-size: 13px;
+}
+
+/* Stack — bordered chip per technology. */
+.stack {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.stack span {
+  font: 500 11px/1 var(--font-mono), monospace;
+  letter-spacing: 0.04em;
+  color: var(--ink-2);
+  border: 1px solid var(--hair);
+  border-radius: 5px;
+  padding: 6px 9px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * 8b. Project pages — editorial "magazine" body
+ *
+ * Everything between the gradient banner and the prev/next pager:
+ *   • `.project-status` — accent pill with a live-dot at the very top
+ *   • `.project-section` — numbered editorial sections (01 OVERVIEW, etc.)
+ *     with an oversized accent numeral in the left margin on wide viewports
+ *   • `.body-editorial` + `.has-drop-cap` — large grotesk drop cap on the
+ *     first paragraph
+ *   • `.project-pullquote` — display-type pull quote restating the tagline
+ *   • `.project-highlights` — numbered list (01, 02, …) with accent numerals
+ *   • `.stack-accent` — stack chips with accent-tinted borders
+ *   • `.project-cta` — big accent CTA card replacing the inline link
+ *
+ * Accent colour for the whole body is read from the inline `--accent` custom
+ * property written by `ProjectMeta` (matches the banner's accent).
+ * ──────────────────────────────────────────────────────────────────────── */
+
+.project-body { position: relative; }
+
+/* ── Status badge — credibility headline for the page ─────────────────
+ * Beefed up because this is the single most important proof point on
+ * the page (live in App Store / open source / etc.). Big enough that
+ * readers see it before the meta grid. */
+.project-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  padding: 10px 18px 10px 13px;
+  margin: 0 0 36px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent) 48%, var(--hair));
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  font: 500 13px/1 var(--font-mono), monospace;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+}
+.project-status-dot {
+  width: 9px;
+  height: 9px;
+}
+.project-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent);
+  animation: project-status-pulse 2.4s ease-in-out infinite;
+}
+@keyframes project-status-pulse {
+  0%, 100% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent); }
+  50%      { box-shadow: 0 0 0 7px color-mix(in srgb, var(--accent) 10%, transparent); }
+}
+.project-status-label { white-space: nowrap; }
+
+/* ── Section: asymmetric two-column grid ──────────────────────────────
+ *
+ * Modelled on udo-audio.com/super-gemini:
+ *
+ *   ┌──────────────────────────────────────────────────────────────┐
+ *   │ 01  Overview      │  Body text flows in the right column…    │
+ *   │ ↑    ↑            │                                          │
+ *   │ small mono +      │  ← centered ~640px wide                  │
+ *   │ small grotesk     │                                          │
+ *   └──────────────────────────────────────────────────────────────┘
+ *
+ * Below 800px the columns stack vertically so the label sits above the
+ * body. The label column is fixed at 200px to keep section starts visually
+ * aligned no matter how long the title is.
+ */
+.project-section {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  column-gap: 48px;
+  margin: 96px 0 0;
+}
+.project-section:first-of-type { margin-top: 80px; }
+/* Header is a vertical stack inside the label column: big accent number on
+ * the top row, sentence-case title on the row below it. The number does the
+ * visual heavy lifting — the title is small support text.
+ *
+ * Negative top margin shifts the big numeral UP so its optical centre sits
+ * roughly opposite the body's first line of prose, instead of the numeral
+ * floating above the line. (The numeral is 56px tall, body line ~26px;
+ * top-aligning makes the body look like it starts mid-numeral, hence the
+ * shift up by ~14px.)
+ *
+ * `position: sticky` keeps the header pinned to the top of the viewport
+ * while its section's body scrolls past — so you always see which section
+ * you're reading. Desktop only; mobile (≤820px) collapses to a single
+ * column and the sticky behaviour would feel cramped. */
+.project-section-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  margin: -14px 0 0;
+  align-self: start;
+  position: sticky;
+  top: 92px;
+}
+.project-section-num {
+  font-family: var(--font-grotesk), sans-serif;
+  font-weight: 600;
+  font-size: 56px;
+  line-height: 0.95;
+  letter-spacing: -0.04em;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.project-section-title {
+  margin: 0;
+  font-family: var(--font-grotesk), sans-serif;
+  font-weight: 500;
+  font-size: 16px;
+  line-height: 1.4;
+  letter-spacing: -0.005em;
+  text-transform: none;
+  color: var(--ink);
+}
+
+/* ── Body prose ───────────────────────────────────────────────────────
+ * Right-column body. Sans-serif (grotesk) for comfortable long-form
+ * reading — the global `body { font-family: mono }` makes prose feel like
+ * a terminal printout, so we override here for body paragraphs and
+ * highlight text. Mono stays reserved for chrome elements (status pill,
+ * section number, eyebrow, stack chips, prev/next labels). */
+.body-editorial p {
+  font-family: var(--font-grotesk), sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+  color: var(--ink-2);
+  margin: 22px 0;
+  letter-spacing: -0.005em;
+}
+.body-editorial p:first-child { margin-top: 0; }
+.body-editorial p:last-child { margin-bottom: 0; }
+/* Accent emphasis inside prose — picks up the project's brand colour. */
+.body-editorial strong,
+.body-editorial b {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* ── Numbered highlights ──────────────────────────────────────────────
+ * Compact numbered list in the right column. Number sits in a fixed mono
+ * gutter on the left; text wraps. No top padding on the first item so the
+ * list aligns with the section label across the column gap. */
+.project-highlights {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.project-highlights li {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 16px;
+  align-items: baseline;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--hair);
+}
+.project-highlights li:first-child { padding-top: 0; }
+.project-highlights li:last-child { border-bottom: 0; padding-bottom: 0; }
+.project-highlights-num {
+  font: 500 12px/1.5 var(--font-mono), monospace;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.project-highlights-text {
+  font-family: var(--font-grotesk), sans-serif;
+  font-size: 15.5px;
+  line-height: 1.55;
+  letter-spacing: -0.005em;
+  color: var(--ink-2);
+}
+
+/* ── Stack chips — sentence-case mono labels with accent borders ──────
+ * Originally modelled after UDO's uppercase "BINAURAL / 20 VOICE" chips,
+ * but our stack items are real package names ("@modelcontextprotocol/sdk",
+ * "Transformers.js (embeddings)") that became unreadable in 10px caps.
+ * Sentence-case mono at 12px with more padding keeps them legible while
+ * still reading as utility chips, not body text. */
+.stack-accent {
+  column-gap: 10px;
+  row-gap: 12px;
+}
+.stack-accent span {
+  padding: 9px 14px;
+  font-family: var(--font-mono), monospace;
+  font-size: 12px;
+  letter-spacing: 0;
+  text-transform: none;
+  border-color: color-mix(in srgb, var(--accent) 38%, var(--hair));
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  color: var(--ink);
+}
+
+/* ── CTA — minimal inline link, not a giant card ──────────────────────
+ * UDO's pattern is a small framed button ("Find a Dealer"); we mirror that
+ * here so the link sits in the right column at the same scale as the body
+ * text rather than overwhelming the page. */
+.project-cta {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 12px 18px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--hair));
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+  text-decoration: none;
+  color: var(--ink);
+  font: 500 13px/1 var(--font-mono), monospace;
+  letter-spacing: 0.04em;
+  transition: border-color 0.18s, background 0.18s, transform 0.18s;
+}
+.project-cta:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  transform: translateY(-1px);
+}
+.project-cta-label {
+  font-weight: 600;
+  color: var(--ink);
+}
+.project-cta-host {
+  color: var(--ink-3);
+}
+.project-cta-arrow {
+  color: var(--accent);
+  transition: transform 0.18s;
+}
+.project-cta:hover .project-cta-arrow { transform: translate(3px, -3px); }
+
+/* ── Narrow-viewport: collapse the two-column section grid ─────────── */
+@media (max-width: 820px) {
+  .project-section {
+    grid-template-columns: 1fr;
+    row-gap: 22px;
+    margin-top: 72px;
+  }
+  .project-section:first-of-type { margin-top: 56px; }
+  .project-section-header {
+    position: static; /* sticky doesn't make sense when columns stack */
+    flex-direction: row;
+    align-items: baseline;
+    gap: 14px;
+    margin: 0;
+  }
+  /* Number drops from headline-scale 56px to 44px when it sits inline with
+   * the title (one row of grid space) — keeps the visual hierarchy intact
+   * without dominating the viewport. */
+  .project-section-num { font-size: 44px; }
+  .project-section-title { font-size: 15px; }
+  .meta { gap: 20px 32px; padding: 22px 0 24px; }
+  .project-hero-banner-tagline { font-size: 15.5px; max-width: 100%; }
+  .project-status { padding: 9px 14px 9px 12px; margin-bottom: 28px; }
+}
+
+/* Prev/next pager — two big card links wrapping around the project list. */
+.project-pager {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 72px;
+  padding-top: 28px;
+  border-top: 1px solid var(--hair);
+}
+.project-pager-link {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-decoration: none;
+  color: var(--ink);
+  padding: 18px 20px;
+  border: 1px solid var(--hair);
+  border-radius: 10px;
+  transition: border-color 0.15s, background 0.15s;
+}
+.project-pager-link:hover {
+  border-color: var(--ink-3);
+  background: color-mix(in srgb, var(--ink) 3%, transparent);
+}
+.project-pager-link.is-next { align-items: flex-end; }
+.project-pager-label {
+  font: 500 9px/1 var(--font-mono), monospace;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.project-pager-name {
+  font-family: var(--font-grotesk), sans-serif;
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: -0.005em;
+  color: var(--ink);
+}
+
+/* Page footer */
+.project-page-footer {
+  margin-top: auto;
+  padding: 30px;
+  border-top: 1px solid var(--hair);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  text-align: center;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * 8c. Project page — GSAP scroll choreography
+ *
+ * The `.project-animated` class is added by `ProjectAnimator` once the
+ * client mounts. The CSS here sets the initial state for elements GSAP
+ * animates from — opacity 0, slight downward offset — so we don't get a
+ * flash of fully-rendered content before the timeline starts.
+ *
+ * `prefers-reduced-motion` short-circuits ProjectAnimator (it removes the
+ * `.project-animated` class), so users with reduced motion see the page
+ * rendered statically in its final state.
+ * ──────────────────────────────────────────────────────────────────────── */
+.project-animator { position: relative; }
+
+/* Initial states — GSAP tweens FROM these (opacity:0) TO their natural
+ * state (opacity:1). Hiding them in CSS prevents the FOUC where a fully
+ * rendered page would flash before the timeline starts. The banner title
+ * stays at opacity:1 because the *characters inside it* are individually
+ * masked + hidden — animating the parent would defeat the per-char reveal. */
+.project-animated .project-hero-banner-eyebrow,
+.project-animated .project-hero-banner-title,
+.project-animated .project-hero-banner-tagline,
+.project-animated .project-page-crumb,
+.project-animated .project-status,
+.project-animated .meta > *,
+.project-animated .project-section-num,
+.project-animated .project-section-title,
+.project-animated .project-section-body,
+.project-animated .project-highlights li,
+.project-animated .stack-accent span,
+.project-animated .project-cta {
+  opacity: 0;
+}
+
+/* Reading progress bar — thin accent sliver at the very top of the
+ * viewport, fills as you scroll through the page. */
+.project-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  z-index: 20;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+}
+.project-progress-bar {
+  height: 100%;
+  width: 100%;
+  background: var(--accent, var(--ink));
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * 9. Page-enter staggered fade-in (applied by `PageEnter`)
+ *
+ * The `.page-enter` wrapper starts every direct child + every wrap-child at
+ * opacity 0 / 14px below position. Adding the `.is-entered` class one rAF
+ * later flips them to their natural state, with cascading transition-delays
+ * so the page reveals as a wave rather than a snap.
+ * ──────────────────────────────────────────────────────────────────────── */
+.page-enter > *,
+.page-enter .project-page-wrap > *,
+.page-enter .work-index-list > li {
+  opacity: 0;
+  transform: translateY(14px);
+  transition:
+    opacity 0.7s cubic-bezier(0.2, 0.7, 0.2, 1),
+    transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.page-enter.is-entered > *,
+.page-enter.is-entered .project-page-wrap > *,
+.page-enter.is-entered .work-index-list > li {
+  opacity: 1;
+  transform: none;
+}
+/* Top-level cascade (banner first, then the wrap container). */
+.page-enter.is-entered > *:nth-child(1) { transition-delay: 0.05s; }
+.page-enter.is-entered > *:nth-child(2) { transition-delay: 0.18s; }
+.page-enter.is-entered > *:nth-child(n+3) { transition-delay: 0.28s; }
+/* Inner cascade for the content blocks inside `.project-page-wrap`. */
+.page-enter.is-entered .project-page-wrap > *:nth-child(1) { transition-delay: 0.30s; }
+.page-enter.is-entered .project-page-wrap > *:nth-child(2) { transition-delay: 0.40s; }
+.page-enter.is-entered .project-page-wrap > *:nth-child(3) { transition-delay: 0.50s; }
+.page-enter.is-entered .project-page-wrap > *:nth-child(4) { transition-delay: 0.58s; }
+.page-enter.is-entered .project-page-wrap > *:nth-child(n+5) { transition-delay: 0.66s; }
+/* Work-index items each get their own delay so the list reveals as a wave. */
+.page-enter.is-entered .work-index-list > li:nth-child(1) { transition-delay: 0.36s; }
+.page-enter.is-entered .work-index-list > li:nth-child(2) { transition-delay: 0.44s; }
+.page-enter.is-entered .work-index-list > li:nth-child(3) { transition-delay: 0.52s; }
+.page-enter.is-entered .work-index-list > li:nth-child(4) { transition-delay: 0.60s; }
+.page-enter.is-entered .work-index-list > li:nth-child(5) { transition-delay: 0.68s; }
+.page-enter.is-entered .work-index-list > li:nth-child(n+6) { transition-delay: 0.76s; }
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * 10. Work index — list of project cards on /work
+ * ──────────────────────────────────────────────────────────────────────── */
+.work-index-title {
+  font-family: var(--font-grotesk), sans-serif;
+  font-weight: 700;
+  font-size: clamp(34px, 6vw, 64px);
+  letter-spacing: -0.01em;
+  line-height: 1.02;
+  margin: 14px 0 14px;
+}
+.work-index-tagline {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--ink-2);
+  max-width: 56ch;
+}
+.work-index-list {
+  list-style: none;
+  padding: 0;
+  margin: 40px 0 0;
+  border-top: 1px solid var(--hair);
+}
+/* Each item is a card-like link with a coloured left bar that lights up on hover. */
+.work-index-item {
+  display: block;
+  padding: 22px 4px 22px 6px;
+  border-bottom: 1px solid var(--hair);
+  border-left: 3px solid transparent;
+  text-decoration: none;
+  color: var(--ink);
+  transition: padding-left 0.18s ease, border-color 0.18s, background 0.18s;
+}
+.work-index-item:hover {
+  padding-left: 18px;
+  border-left-color: var(--accent, var(--ink-3));
+  background: color-mix(in srgb, var(--ink) 3%, transparent);
+}
+.work-index-item-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 18px;
+}
+.work-index-item-name {
+  font-family: var(--font-grotesk), sans-serif;
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: -0.005em;
+}
+.work-index-item-year {
+  font: 500 10px/1 var(--font-mono), monospace;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+.work-index-item-tag {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--ink-2);
+  margin: 7px 0 0;
+  max-width: 60ch;
+}
+.work-index-item-meta {
+  font: 500 10px/1 var(--font-mono), monospace;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin: 9px 0 0;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * 11. Project pages — narrow-viewport tweaks
+ *
+ *   • ≤720px (tablet / landscape phone) — single-column banner, single-column
+ *     pager, tighter padding, smaller secondary-nav font.
+ *   • ≤480px (portrait phone) — hide the "work" topbar link (redundant with
+ *     the switcher), tighten the banner padding more, bigger interactive
+ *     elements for tap accuracy.
+ * ──────────────────────────────────────────────────────────────────────── */
+@media (max-width: 820px) {
+  .page-topbar { padding: 12px 18px; }
+  .project-hero-banner-inner {
+    padding: 56px 24px 64px;
+    min-height: 240px;
+  }
+  .project-page-wrap { padding: 40px 22px 80px; }
+  .project-pager { grid-template-columns: 1fr; }
+  .project-pager-link.is-next { align-items: flex-start; }
+  /* Reserve room for the mobile bar (52px) instead of the desktop strip. */
+  .project-page { padding-bottom: 68px; }
+}
+
+/* ── Mid-mobile (≤600px) — bring everything down another notch so the
+ *    chrome doesn't dwarf the content on a typical phone. */
+@media (max-width: 600px) {
+  .project-hero-banner-inner {
+    padding: 48px 22px 56px;
+    min-height: 200px;
+  }
+  .project-hero-banner-eyebrow {
+    font-size: 9.5px;
+    letter-spacing: 0.18em;
+    gap: 6px;
+  }
+  .project-hero-banner-tagline { font-size: 15px; }
+  .project-page-wrap { padding: 32px 20px 72px; }
+  .project-status {
+    padding: 8px 13px 8px 11px;
+    font-size: 11.5px;
+    gap: 9px;
+    margin-bottom: 26px;
+  }
+  .project-status-label {
+    /* Long status strings like "Live in the Shopify App Store" need to be
+     * able to wrap on a phone instead of overflowing the pill. */
+    white-space: normal;
+  }
+  .project-section { margin-top: 64px; row-gap: 18px; }
+  .project-section:first-of-type { margin-top: 48px; }
+  .project-section-header { gap: 12px; }
+  .project-section-num { font-size: 38px; }
+  .body-editorial p { font-size: 15px; margin: 18px 0; }
+  .project-highlights li { padding: 16px 0; grid-template-columns: 32px minmax(0, 1fr); gap: 12px; }
+  .project-highlights-text { font-size: 14.5px; }
+  .stack-accent span { padding: 7px 11px; font-size: 11px; }
+  .project-cta { padding: 11px 16px; font-size: 12px; }
+  .project-pager-name { font-size: 19px; }
+  .project-page-crumb { font-size: 9.5px; letter-spacing: 0.2em; }
+}
+
+@media (max-width: 480px) {
+  .page-topbar { padding: 10px 14px; }
+  .page-topbar-home { font-size: 11px; letter-spacing: 0.26em; }
+  .project-hero-banner-inner { padding: 40px 18px 48px; min-height: 180px; }
+  .project-hero-banner-title { margin: 10px 0 12px; }
+  .project-hero-banner-tagline { font-size: 14.5px; line-height: 1.45; }
+  .project-page-wrap { padding: 28px 18px 64px; }
+  .project-section { margin-top: 56px; }
+  .project-section:first-of-type { margin-top: 40px; }
+  .project-section-num { font-size: 34px; }
+  .meta { gap: 16px 24px; padding: 20px 0 22px; }
 }
