@@ -21,8 +21,10 @@ import {
   MOBILE_BREAKPOINT,
   MOUSE_AMP,
   OPACITY_LERP,
-  PHRASE_DUR,
-  PHRASE_FADE,
+  PHASE_DISSOLVE_DUR,
+  PHASE_IDLE_DUR,
+  PHASE_REFORM_DUR,
+  PHASE_TRAVEL_DUR,
   REGROUP_DUR,
   REGROUP_SPRING,
   SCATTER_CLAMP,
@@ -35,6 +37,19 @@ import {
 import { buildEnvScene } from "./sceneEnv";
 import { makeNeonDebrisMaterial, makePreset } from "./sceneMaterials";
 import { placeDebris } from "./sceneDebris";
+import {
+  applyPhraseSample,
+  buildParticleSystem,
+  disposeParticleSystem,
+  endReform,
+  samplePhrase,
+  setParticleMaterial,
+  startDissolve,
+  startReform,
+  updateParticles,
+  type ParticlePhase,
+  type PhraseSample,
+} from "./sceneParticles";
 import { attachPhraseToRoot, buildPhrase } from "./sceneWordmark";
 import { setupComposer } from "./sceneComposer";
 import type { SceneApi } from "./sceneTypes";
@@ -128,6 +143,12 @@ export function useHeroScene(
     heroMaterial.opacity = 0;
     let debrisMaterial = makePreset(matName, debrisTintHex);
 
+    // Particle material: a parallel always-opaque clone of the hero finish.
+    // Particles share the picked finish + colour with the wordmark, but stay
+    // opaque so they don't fade with the letter dissolve envelope (they ARE
+    // the dissolve — the letters are what fade).
+    let particleMaterial = makePreset(matName, heroTintHex);
+
     /* ── debris cloud ──────────────────────────────────────────── */
     const debrisGroup = new THREE.Group();
     scene.add(debrisGroup);
@@ -138,14 +159,30 @@ export function useHeroScene(
     const wordRoot = new THREE.Group();
     scene.add(wordRoot);
     const phraseLetterMeshes: THREE.Mesh[][] = [];
+    // Cached particle layout per phrase — computed once at font load, reused on
+    // every transition (see samplePhrase). Indexed parallel to phraseLetterMeshes.
+    const phraseSamples: PhraseSample[] = [];
+
+    /* ── particle system (phrase dissolve / reform) ─────────────── */
+    // InstancedMesh of small chrome shards that ARE the phrase transition.
+    // Sits in its own group parallel to wordRoot, gets the same breathing
+    // rotation copied to it each frame so it tracks the wordmark.
+    const particles = buildParticleSystem(particleMaterial);
+    scene.add(particles.group);
     let font: Font | null = null;
     let sceneReady = false;
     let phraseIndex = 0;
-    let phraseClock = 0;
+    /** Time within the current phase of the dissolve/reform machine. */
+    let phaseClock = 0;
+    /** Current phase. `IDLE` = letters solid, swarm hidden; the three
+     *  ParticlePhase values cover the transition. */
+    let phraseTransitionPhase: "IDLE" | ParticlePhase = "IDLE";
     let phraseOpacity = 0;
 
     /* ── material-swap helpers (used by the imperative API setters) ── */
-    /** Rebuild the hero material with the current finish + hero-tint, swap into every letter mesh. */
+    /** Rebuild the hero material with the current finish + hero-tint, swap into every letter mesh.
+     *  Also rebuilds the particle-system material (always-opaque clone of the same recipe) so
+     *  particles pick up the new finish / colour. */
     function rebuildHero(): void {
       const next = makePreset(matName, heroTintHex);
       next.transparent = true;
@@ -154,6 +191,11 @@ export function useHeroScene(
       heroMaterial = next;
       for (const meshes of phraseLetterMeshes) for (const m of meshes) m.material = heroMaterial;
       prev.dispose();
+
+      const prevPart = particleMaterial;
+      particleMaterial = makePreset(matName, heroTintHex);
+      setParticleMaterial(particles, particleMaterial);
+      prevPart.dispose();
     }
     /**
      * Rebuild the debris material with the current finish + debris-tint, swap into
@@ -296,6 +338,11 @@ export function useHeroScene(
       if (disposed) return;
       font = loaded;
       for (const text of PHRASES) phraseLetterMeshes.push(buildPhrase(text, font, heroMaterial));
+      // Pre-sample every phrase's particle layout once — deterministic per
+      // phrase, so caching here removes the sampling spike from each transition.
+      for (const meshes of phraseLetterMeshes) {
+        phraseSamples.push(samplePhrase(meshes, particles.count));
+      }
       attachPhraseToRoot(wordRoot, phraseLetterMeshes[phraseIndex], heroMaterial);
       sceneReady = true;
       onReady();
@@ -318,20 +365,90 @@ export function useHeroScene(
       const rz = BREATH_AMP * Math.sin(0.2 * t);
       debrisGroup.rotation.set(rx, ry, rz);
       wordRoot.rotation.set(rx, ry, rx);
+      // Particle swarm sits in its own group; copy the wordmark's breathing
+      // rotation so the swarm tracks the wordmark during transitions.
+      particles.group.rotation.copy(wordRoot.rotation);
 
       if (sceneReady) {
         if (mode === "idle") {
-          phraseClock += dt;
-          if (phraseClock >= PHRASE_DUR) {
-            phraseClock -= PHRASE_DUR;
-            phraseIndex = (phraseIndex + 1) % phraseLetterMeshes.length;
-            attachPhraseToRoot(wordRoot, phraseLetterMeshes[phraseIndex], heroMaterial);
+          // ── phrase-transition phase machine ─────────────────────────
+          //   IDLE     letters fully solid; particles hidden.
+          //   DISSOLVE letters fade out; particles explode outward from each
+          //            sampled letter-surface point.
+          //   TRAVEL   letters invisible; particles coast and damp. Phrase
+          //            index increments mid-TRAVEL so the new wordmark is
+          //            in place before targets are resampled.
+          //   REFORM   letters fade in as particles exponentially lerp toward
+          //            the new phrase's surface targets.
+          phaseClock += dt;
+          if (phraseTransitionPhase === "IDLE") {
+            phraseOpacity += (1 - phraseOpacity) * OPACITY_LERP;
+            if (phaseClock >= PHASE_IDLE_DUR) {
+              phaseClock = 0;
+              phraseTransitionPhase = "DISSOLVE";
+              // Point at the cached layout of the phrase about to dissolve, so
+              // particles start exactly on those letters. O(1) reference swap.
+              applyPhraseSample(particles, phraseSamples[phraseIndex]);
+              startDissolve(particles);
+            }
+          } else if (phraseTransitionPhase === "DISSOLVE") {
+            // Sharp letter pop — fade out across only the first ~30% of the
+            // dissolve phase, then hold at 0. The burst dominates the rest of
+            // the phase so the eye reads "letters EXPLODED" instead of
+            // "letters slowly faded while some particles appeared".
+            const dn = Math.min(1, (phaseClock / PHASE_DISSOLVE_DUR) * 3.3);
+            const eased = dn * dn * (3 - 2 * dn);
+            phraseOpacity = 1 - eased;
+            updateParticles(particles, "DISSOLVE", dt);
+            if (phaseClock >= PHASE_DISSOLVE_DUR) {
+              phaseClock = 0;
+              phraseTransitionPhase = "TRAVEL";
+              // Advance to the next phrase and attach its letters now while
+              // they're at opacity 0 — invisible until REFORM brings them in.
+              phraseIndex = (phraseIndex + 1) % phraseLetterMeshes.length;
+              attachPhraseToRoot(wordRoot, phraseLetterMeshes[phraseIndex], heroMaterial);
+              phraseOpacity = 0;
+            }
+          } else if (phraseTransitionPhase === "TRAVEL") {
             phraseOpacity = 0;
+            updateParticles(particles, "TRAVEL", dt);
+            if (phaseClock >= PHASE_TRAVEL_DUR) {
+              phaseClock = 0;
+              phraseTransitionPhase = "REFORM";
+              // Point at the NEW phrase's cached layout, then arm REFORM: clear
+              // hasStarted so each particle's lerp begins from wherever it
+              // actually is when its stagger fires. O(1) reference swap.
+              applyPhraseSample(particles, phraseSamples[phraseIndex]);
+              startReform(particles);
+            }
+          } else {
+            // REFORM — particles converge to surface targets via time-based
+            // eased lerp (guaranteed to land at end of phase). Letters stay
+            // INVISIBLE until particles have essentially arrived (last 10% of
+            // the phase), then a quick smoothstep handoff: letter opacity
+            // rises from 0 to 1 while particle scale fades from 1 to 0. The
+            // particles visually become the letters.
+            const dn = phaseClock / PHASE_REFORM_DUR;
+            const HANDOFF_START = 0.9;
+            const fade = Math.max(0, (dn - HANDOFF_START) / (1 - HANDOFF_START));
+            const eased = fade * fade * (3 - 2 * fade);
+            phraseOpacity = eased;
+            const particleScale = 1 - eased;
+            updateParticles(
+              particles,
+              "REFORM",
+              dt,
+              phaseClock,
+              PHASE_REFORM_DUR,
+              particleScale,
+            );
+            if (phaseClock >= PHASE_REFORM_DUR) {
+              phaseClock = 0;
+              phraseTransitionPhase = "IDLE";
+              endReform(particles);
+              phraseOpacity = 1;
+            }
           }
-          const fadeIn = Math.min(1, phraseClock / PHRASE_FADE);
-          const fadeOut = Math.min(1, (PHRASE_DUR - phraseClock) / PHRASE_FADE);
-          const target = Math.min(fadeIn, fadeOut);
-          phraseOpacity += (target - phraseOpacity) * OPACITY_LERP;
         } else {
           phraseOpacity += (1 - phraseOpacity) * 0.3;
           scatterClock += dt;
@@ -368,7 +485,10 @@ export function useHeroScene(
             }
             if (scatterClock >= REGROUP_DUR) {
               mode = "idle";
-              phraseClock = 0;
+              // Reset the transition machine so the phrase doesn't immediately
+              // dissolve right after a scatter interaction completes.
+              phaseClock = 0;
+              phraseTransitionPhase = "IDLE";
               for (const mesh of wordRoot.children) {
                 mesh.position.copy(mesh.userData.home);
                 mesh.rotation.set(0, 0, 0);
@@ -384,7 +504,25 @@ export function useHeroScene(
       camera.position.y += CAM_FOLLOW * (mouseY - camera.position.y);
       camera.lookAt(lookTarget);
 
-      composer.render();
+      // Render. Only the neon finish needs the composer (for its bloom pass).
+      // Every other finish renders the two layers straight to the canvas — this
+      // skips the composer's offscreen render target + the full-screen OutputPass
+      // quad every frame, and lets the hardware MSAA (antialias:true) do the AA.
+      // The renderer's ACES tonemapping + sRGB output (set at init) match what
+      // OutputPass would have applied, so the image is visually equivalent.
+      if (bloomPass.enabled) {
+        composer.render();
+      } else {
+        renderer.autoClear = true;
+        camera.layers.set(0); // debris — clears colour + depth
+        renderer.render(scene, camera);
+        renderer.autoClear = false;
+        renderer.clearDepth(); // keep colour, reset depth so the wordmark wins
+        camera.layers.set(1); // wordmark + particle swarm, drawn on top
+        renderer.render(scene, camera);
+        renderer.autoClear = true;
+        camera.layers.enableAll();
+      }
     }
     animate();
 
@@ -400,8 +538,10 @@ export function useHeroScene(
       apiRef.current = null;
       for (const meshes of phraseLetterMeshes) for (const m of meshes) (m.geometry as THREE.BufferGeometry).dispose();
       for (const mesh of debrisMeshes) mesh.geometry.dispose();
+      disposeParticleSystem(particles);
       heroMaterial.dispose();
       debrisMaterial.dispose();
+      particleMaterial.dispose();
       envRenderTarget.dispose();
       pmrem.dispose();
       composer.dispose();

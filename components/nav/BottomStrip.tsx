@@ -1,6 +1,6 @@
-import { Fragment } from "react";
+import { Fragment, type CSSProperties } from "react";
 import Link from "next/link";
-import { PROJECTS } from "@/lib/projects";
+import { PROJECTS, getProjectAccent } from "@/lib/projects";
 import { OWNER_EMAIL, OWNER_GITHUB } from "@/lib/siteConfig";
 
 /**
@@ -34,6 +34,12 @@ export default function BottomStrip({ activeSlug }: BottomStripProps) {
         <nav className="work-links" aria-label="Projects">
           {PROJECTS.map((project, i) => {
             const isActive = project.slug === activeSlug;
+            // Per-project accent — consumed on :hover by `.work-links a` in
+            // globals.css via `var(--accent)`. Matches the same accent system
+            // used by the project banners and the mobile sheet.
+            const accentStyle = {
+              "--accent": getProjectAccent(project.slug).hex,
+            } as CSSProperties;
             return (
               <Fragment key={project.slug}>
                 {i > 0 && <span className="sep">·</span>}
@@ -41,6 +47,7 @@ export default function BottomStrip({ activeSlug }: BottomStripProps) {
                   href={`/work/${project.slug}`}
                   aria-current={isActive ? "page" : undefined}
                   className={isActive ? "is-active" : undefined}
+                  style={accentStyle}
                 >
                   {project.name}
                 </Link>
