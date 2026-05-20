@@ -78,13 +78,15 @@ export const DEFAULT_FINISH: MatName = "chrome";
 export const DEFAULT_SWATCH = "white";
 
 /**
- * Cycling phrases on the wordmark. Short, accurate to what he does — he puts AI to
- * work in production. No name on the type; no "agents" overclaim. `\n` = line break.
+ * Cycling phrases on the wordmark. Short, accurate to what he does — he *applies*
+ * AI in production (ships LLM-powered apps / pipelines). He does NOT build, train,
+ * or create models, so phrases must not imply that ("assembled", "i made the ai
+ * work", etc. are out). No name on the type; no "agents" overclaim. `\n` = line break.
  */
 export const PHRASES: string[] = [
   "ai doesn't\ntake my job.\ni give it one",
-  "the ai works.\ni checked.",
-  "ai, fully\nassembled",
+  "i make ai\nbehave",
+  "ai, on\nthe clock",
   "i ship what\nothers demo",
   "ai with\na day job",
   "hire me before\nyour ai does",
