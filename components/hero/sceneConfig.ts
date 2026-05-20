@@ -99,10 +99,28 @@ export const OPACITY_LERP = 0.22;
 export const MAX_DT = 0.05;
 
 /* ── PHRASES ──────────────────────────────────────────────────────── */
-/** Seconds a phrase is fully shown before the next one is cycled in. */
-export const PHRASE_DUR = 6.6;
-/** Seconds of fade-in / fade-out at each end of a phrase. */
-export const PHRASE_FADE = 0.6;
+/**
+ * Phrase transitions run as a four-phase machine driven by the particle
+ * dissolve / reform system (see `sceneParticles.ts`). The host loop advances
+ * `phaseClock` within whichever phase is current and rotates through:
+ *
+ *   IDLE     → DISSOLVE → TRAVEL → REFORM → IDLE …
+ *
+ * Total cycle = sum of the four durations below. Tune the individual phases
+ * here; the host reads these constants directly and doesn't carry any of the
+ * old fade-out / fade-in numbers.
+ */
+/** Seconds a phrase is held fully shown before it begins to dissolve. */
+export const PHASE_IDLE_DUR = 4.4;
+/** Seconds the letters fade out while particles explode outward from them. */
+export const PHASE_DISSOLVE_DUR = 0.75;
+/** Seconds the particle swarm drifts before the next phrase's targets are
+ *  sampled. Keep short — too long and the swarm feels lost. */
+export const PHASE_TRAVEL_DUR = 0.55;
+/** Seconds the particles exponentially converge onto the new phrase while the
+ *  letters fade in. Deliberately ~2x DISSOLVE so the reconstitution reads as
+ *  crafted (vs. the dissolve being sudden / energetic). */
+export const PHASE_REFORM_DUR = 1.6;
 
 /* ── SCATTER (click-the-wordmark interaction) ────────────────────── */
 /** Seconds the letters drift around after a click before they regroup. */

@@ -123,11 +123,12 @@ export default function ProjectBlobBanner({ slug: _slug }: ProjectBlobBannerProp
     const mcResolution = isMobile ? 48 : 80;
     const mcubes = new MarchingCubes(mcResolution, material, false, false, 200000);
     mcubes.isolation = 80;
-    // Target final scale. Starts at 0 (invisible) and eases up during
-    // the intro animation (see INTRO_DUR below). Mobile uses a smaller
-    // scale — the mobile banner is much narrower, so the desktop size
-    // would dominate the whole banner.
-    const TARGET_SCALE = isMobile ? 1.25 : 1.9;
+    // Target final scale. Starts at 0 (invisible) and eases up during the intro
+    // (see INTRO_DUR below). A single base value — `responsiveScale` (in resize)
+    // shrinks it continuously by the visible frustum width, so narrow banners
+    // (tablet, mobile) already get a proportionally smaller blob without a
+    // separate mobile constant. On a phone-width banner this lands near ~1.1.
+    const TARGET_SCALE = 1.9;
     mcubes.scale.setScalar(0);
     // CRITICAL: stale bounding sphere at world origin would cull this mesh
     // out of frustum once we move it. Disable frustum culling outright.
@@ -135,12 +136,26 @@ export default function ProjectBlobBanner({ slug: _slug }: ProjectBlobBannerProp
     scene.add(mcubes);
 
     // ── Resize ───────────────────────────────────────────────────────
+    // Visible half-extents of the frustum at the blob's z-plane (z=0). halfVisH
+    // is aspect-independent (set by FOV + distance); halfVisW grows with aspect.
+    // The blob is positioned/scaled as a FRACTION of these so it stays in the
+    // right portion of the banner at any aspect — instead of using fixed world
+    // coords that fall off the right edge on narrow/short (tablet) banners.
+    // REF_HALF_W is the desktop-ish width at which TARGET_SCALE looks right;
+    // narrower banners scale the blob down proportionally so it never overruns.
+    const REF_HALF_W = 3.5;
+    let halfVisH = Math.tan(((camera.fov * Math.PI) / 180) / 2) * camera.position.z;
+    let halfVisW = halfVisH * camera.aspect;
+    let responsiveScale = TARGET_SCALE;
     const resize = () => {
       const w = container.clientWidth;
       const h = container.clientHeight;
       if (w === 0 || h === 0) return;
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
+      halfVisH = Math.tan(((camera.fov * Math.PI) / 180) / 2) * camera.position.z;
+      halfVisW = halfVisH * camera.aspect;
+      responsiveScale = TARGET_SCALE * Math.min(1, Math.max(0.55, halfVisW / REF_HALF_W));
       renderer.setSize(w, h, false);
     };
     resize();
@@ -179,7 +194,24 @@ export default function ProjectBlobBanner({ slug: _slug }: ProjectBlobBannerProp
     // Field-space ball positions are in [0, 1]; we centre at 0.5 and add
     // small offsets. addBall(x, y, z, strength, subtract) — strength /
     // subtract together set each ball's effective radius in the field.
-    const updateBalls = (t: number) => {
+    // Scattered intro position for ball `i` in field space [0,1]. Spread via the
+    // golden angle so the droplets distribute organically (not a mechanical
+    // ring) across the field; radius kept ≤0.36 so each ball's influence stays
+    // inside the marching-cubes grid (no edge clipping).
+    const introScatter = (i: number): [number, number, number] => {
+      const a = i * 2.39996; // golden angle
+      const r = 0.30 + 0.06 * (i % 3);
+      return [
+        0.5 + Math.cos(a) * r,
+        0.5 + Math.sin(a) * r * 0.82,
+        0.5 + (i % 2 ? 0.15 : -0.15),
+      ];
+    };
+
+    // `converge` (0→1) drives the coalescence intro: at 0 every ball sits at its
+    // scattered start (separate droplets), at 1 it's at its normal animated
+    // position (merged organism). Each ball lerps between the two.
+    const updateBalls = (t: number, converge: number) => {
       mcubes.reset();
 
       // Slow drift of the cluster centre — keeps the organism alive.
@@ -199,7 +231,14 @@ export default function ProjectBlobBanner({ slug: _slug }: ProjectBlobBannerProp
         const x = 0.5 + cx + wx * 0.08;
         const y = 0.5 + cy + wy * 0.08;
         const z = 0.5 + cz + wz * 0.08;
-        mcubes.addBall(x, y, z, strength, subtract);
+        const s = introScatter(i);
+        mcubes.addBall(
+          s[0] + (x - s[0]) * converge,
+          s[1] + (y - s[1]) * converge,
+          s[2] + (z - s[2]) * converge,
+          strength,
+          subtract,
+        );
       }
 
       // ── Pinch-off balls (indices 4, 5) — each follows a state cycle.
@@ -257,7 +296,14 @@ export default function ProjectBlobBanner({ slug: _slug }: ProjectBlobBannerProp
         // Lower strength on the pinch-off ball so the connecting bridge
         // thins faster as it stretches — gives the classic lava-lamp
         // "neck pinch" instead of a fat sausage staying connected.
-        mcubes.addBall(x, y, z, strength * 0.75, subtract);
+        const s = introScatter(i);
+        mcubes.addBall(
+          s[0] + (x - s[0]) * converge,
+          s[1] + (y - s[1]) * converge,
+          s[2] + (z - s[2]) * converge,
+          strength * 0.75,
+          subtract,
+        );
       }
 
       // MarchingCubes doesn't auto-update on render — explicit polygonize.
@@ -271,23 +317,26 @@ export default function ProjectBlobBanner({ slug: _slug }: ProjectBlobBannerProp
     // right edge. So both the anchor and the drift amplitudes scale
     // down on mobile to keep the blob fully on-screen.
     //
-    // Phases on the y-drift sines are tuned so dy(0) ≈ -0.22 — the blob
-    // enters the page in the lower portion of the banner and gradually
-    // drifts up through its cycle, rather than starting at the top.
-    // Desktop: blob lives right of the title in the open right half.
-    // Mobile: the title + tagline fill the upper banner, so the blob is
-    // anchored low (meshAnchorY negative = lower) and slightly right,
-    // tucking into the open band beneath the text.
-    const meshAnchorX = isMobile ? 0.45 : 2.0;
-    const meshAnchorY = isMobile ? -0.55 : 0.0;
-    const dxAmp1 = isMobile ? 0.55 : 1.30;
-    const dxAmp2 = isMobile ? 0.25 : 0.60;
-    const dyAmp1 = isMobile ? 0.30 : 0.40;
-    const dyAmp2 = isMobile ? 0.14 : 0.18;
+    // Position the blob as a FRACTION of the visible frustum so it stays in
+    // frame at every aspect ratio (desktop → tablet → mobile) instead of using
+    // fixed world coords that fall off the right edge on narrow banners.
+    //
+    // Phases on the y-drift sines are tuned so dy(0) ≈ -0.22 — the blob enters
+    // low and drifts up through its cycle. On mobile the title + tagline fill
+    // the upper banner, so the vertical anchor tucks LOW (negative fraction)
+    // into the open band beneath the text and the horizontal anchor pulls a
+    // touch more central; on desktop it sits centred in the open right half.
+    const xAnchorFrac = isMobile ? 0.42 : 0.5;
+    const yAnchorFrac = isMobile ? -0.42 : 0.0;
+    const xDriftFrac = isMobile ? 0.18 : 0.26;
+    const yDriftFrac = isMobile ? 0.12 : 0.16;
     const updateMeshPosition = (t: number) => {
-      const dx = dxAmp1 * Math.sin(t * 0.09) + dxAmp2 * Math.sin(t * 0.16 + 1.4);
-      const dy = dyAmp1 * Math.sin(t * 0.12 + 3.7) + dyAmp2 * Math.cos(t * 0.08 + 1.65);
-      mcubes.position.set(meshAnchorX + dx, meshAnchorY + dy, 0);
+      // Normalised drift in ~[-1, 1], placed as a fraction of the visible frustum.
+      const dxN = 0.68 * Math.sin(t * 0.09) + 0.32 * Math.sin(t * 0.16 + 1.4);
+      const dyN = 0.7 * Math.sin(t * 0.12 + 3.7) + 0.3 * Math.cos(t * 0.08 + 1.65);
+      const x = halfVisW * (xAnchorFrac + xDriftFrac * dxN);
+      const y = halfVisH * (yAnchorFrac + yDriftFrac * dyN);
+      mcubes.position.set(x, y, 0);
     };
 
     // Throttle the expensive marching-cubes polygonize: 30Hz on desktop,
@@ -298,33 +347,40 @@ export default function ProjectBlobBanner({ slug: _slug }: ProjectBlobBannerProp
     const MC_UPDATE_INTERVAL = isMobile ? 1 / 20 : 1 / 30;
     let lastMcUpdate = -1;
 
-    // Intro: the blob smoothly grows from a speck (scale 0) to its full
-    // target scale over INTRO_DUR seconds with an ease-out cubic curve,
-    // so it feels like it materialises rather than popping in.
-    const INTRO_DUR = 1.4;
+    // Intro: the blob coalesces from scattered iridescent droplets into the
+    // merged organism over INTRO_DUR seconds. The droplets stream inward
+    // (smoothstep `converge`) while the whole mesh eases up to full scale
+    // (ease-out-cubic) — so it gathers itself into being rather than just
+    // growing in place.
+    const INTRO_DUR = 1.9;
 
     const animate = () => {
       if (!running) return;
       rafId = requestAnimationFrame(animate);
       const t = clock.getElapsedTime();
+      const introT = Math.min(1, t / INTRO_DUR);
+      // Smoothstep convergence — slow at the start (droplets hang apart), fast
+      // through the middle (they rush together), settling gently at the end.
+      const converge = introT * introT * (3 - 2 * introT);
       if (t - lastMcUpdate >= MC_UPDATE_INTERVAL) {
-        updateBalls(t);
+        updateBalls(t, converge);
         lastMcUpdate = t;
       }
       updateMeshPosition(t);
-      // Intro scale-up: 0 → TARGET_SCALE over INTRO_DUR with ease-out-cubic.
-      const introT = Math.min(1, t / INTRO_DUR);
-      const eased = 1 - Math.pow(1 - introT, 3);
-      mcubes.scale.setScalar(TARGET_SCALE * eased);
+      // Scale eases to full a touch ahead of convergence so the droplets are
+      // visible at near-full size as they merge (ease-out-cubic). responsiveScale
+      // shrinks the blob on narrow banners so it never overruns the frame.
+      const scaleEase = 1 - Math.pow(1 - introT, 3);
+      mcubes.scale.setScalar(responsiveScale * scaleEase);
       // Slow rotation drifts env reflections across the surface.
       mcubes.rotation.y = t * 0.08;
       renderer.render(scene, camera);
     };
 
     if (reducedMotion) {
-      updateBalls(0);
+      updateBalls(0, 1); // fully merged, no coalescence
       updateMeshPosition(0);
-      mcubes.scale.setScalar(TARGET_SCALE); // skip intro animation
+      mcubes.scale.setScalar(responsiveScale); // skip intro animation
       renderer.render(scene, camera);
     } else {
       animate();
