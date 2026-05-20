@@ -967,7 +967,7 @@ body.dark .mob-sheet-panel {
 
 /* Sticky top bar — name lockup, project switcher, secondary nav. */
 /* Slim sticky brand header on `/work` and `/work/[slug]`. Just the
- * "MICHAEL VIDAL" lockup — the project switcher lives in the persistent BottomStrip, same
+ * "MIKE VIDAL" lockup — the project switcher lives in the persistent BottomStrip, same
  * place it lives on the home page. Left padding tracks the ultrawide column
  * so the brand stays aligned with the body content below. */
 .page-topbar {

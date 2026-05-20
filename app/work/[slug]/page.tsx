@@ -109,7 +109,7 @@ export default async function ProjectPage({ params }: { params: Promise<RoutePar
       </ProjectAnimator>
 
       <footer className="project-page-footer">
-        Michael Vidal · Miami · open to remote
+        Mike Vidal · Miami · open to remote
       </footer>
 
       {/* Persistent bottom nav — same pattern as the home page. The

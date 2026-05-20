@@ -65,9 +65,13 @@ export default function ProjectAnimator({ routeKey, children }: ProjectAnimatorP
     const root = rootRef.current;
     if (!root) return;
 
-    // Mark the page as JS-animated so the CSS hides initial states. Without
-    // this class the SSR / no-JS render shows everything at final position.
-    root.classList.add("project-animated");
+    // The `project-animated` class is now rendered in the SSR markup (see
+    // JSX below) rather than added here — adding it post-mount caused a
+    // flash: the content painted fully visible, then this effect ran and
+    // the CSS opacity:0 rule snapped it hidden before GSAP faded it in.
+    // Rendering the class server-side means the content is hidden from
+    // the very first paint, so the animation is the only thing the user
+    // ever sees.
 
     // Reduced-motion users: lift everything to its final state instantly and bail.
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
@@ -257,7 +261,16 @@ export default function ProjectAnimator({ routeKey, children }: ProjectAnimatorP
   }, [routeKey]);
 
   return (
-    <div ref={rootRef} className="project-animator">
+    <div ref={rootRef} className="project-animator project-animated">
+      {/* No-JS fallback: the `project-animated` class hides the reveal
+          targets at opacity:0 expecting GSAP to fade them in. If JS is
+          disabled GSAP never runs, so this <noscript> style lifts them
+          all back to visible. */}
+      <noscript>
+        <style>{`${REVEAL_SELECTORS.split(", ")
+          .map((s) => `.project-animated ${s}`)
+          .join(", ")}{opacity:1!important;transform:none!important;filter:none!important;}`}</style>
+      </noscript>
       {/* Reading-progress sliver pinned to the top of the viewport. */}
       <div className="project-progress" aria-hidden="true">
         <div className="project-progress-bar" />

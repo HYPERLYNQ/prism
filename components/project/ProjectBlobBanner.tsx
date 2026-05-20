@@ -51,6 +51,14 @@ export default function ProjectBlobBanner({ slug: _slug }: ProjectBlobBannerProp
     const container = containerRef.current;
     if (!container) return;
 
+    // Mobile detection — phones have weaker GPUs and tighter thermal/
+    // battery budgets, so the blob runs lighter there: lower marching-
+    // cubes resolution, capped pixel ratio, slower field-rebuild rate.
+    // `pointer: coarse` + narrow viewport is a reliable phone signal.
+    const isMobile =
+      window.matchMedia("(max-width: 820px)").matches ||
+      window.matchMedia("(pointer: coarse)").matches;
+
     // ── Canvas + renderer ────────────────────────────────────────────
     const canvas = document.createElement("canvas");
     canvas.style.cssText = "position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none;";
@@ -63,7 +71,10 @@ export default function ProjectBlobBanner({ slug: _slug }: ProjectBlobBannerProp
       powerPreference: "high-performance",
     });
     renderer.setClearColor(0x000000, 0);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    // Mobile: cap pixel ratio at 1.5 (vs 2 on desktop) — halves the
+    // fragment-shading load on high-DPR phone screens for a barely
+    // perceptible quality difference at the banner's small size.
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1.5 : 2));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.1;
@@ -105,15 +116,18 @@ export default function ProjectBlobBanner({ slug: _slug }: ProjectBlobBannerProp
     });
 
     // ── MarchingCubes blob ───────────────────────────────────────────
-    // Resolution 80 — sweet spot for the banner size. 128 was hammering
-    // the CPU (~2M field cells polygonized every frame); 80 drops that
-    // to ~512k cells = ~⅛ the work, and the polygons stay small enough
-    // at the banner's render footprint that facets aren't visible.
-    const mcubes = new MarchingCubes(80, material, false, false, 200000);
+    // Resolution: 80 on desktop, 48 on mobile. The polygonize cost scales
+    // with resolution³, so 48 vs 80 is ~⅕ the per-frame CPU work — a big
+    // win for phone battery/thermals. At the banner's small render size
+    // on a phone screen, 48-cell facets still aren't visible.
+    const mcResolution = isMobile ? 48 : 80;
+    const mcubes = new MarchingCubes(mcResolution, material, false, false, 200000);
     mcubes.isolation = 80;
     // Target final scale. Starts at 0 (invisible) and eases up during
-    // the intro animation (see INTRO_DUR below).
-    const TARGET_SCALE = 1.9;
+    // the intro animation (see INTRO_DUR below). Mobile uses a smaller
+    // scale — the mobile banner is much narrower, so the desktop size
+    // would dominate the whole banner.
+    const TARGET_SCALE = isMobile ? 1.25 : 1.9;
     mcubes.scale.setScalar(0);
     // CRITICAL: stale bounding sphere at world origin would cull this mesh
     // out of frustum once we move it. Disable frustum culling outright.
@@ -250,26 +264,38 @@ export default function ProjectBlobBanner({ slug: _slug }: ProjectBlobBannerProp
       mcubes.update();
     };
 
-    // Drift the WHOLE MESH across the right ~⅔ of the banner — anchor
-    // 2.0 + dx range ±1.9 puts the blob's drift between x≈0.1 (just
-    // clear of title space) and x≈3.9 (deep into the right portion of
-    // the banner, approaching the right edge). Vertical drift fills
-    // most of the banner height.
+    // Drift the WHOLE MESH around the banner. The desktop banner is wide
+    // (camera horizontal half-FOV ≈ 5.4 world units) so the blob can
+    // anchor right + drift far. The mobile banner is narrow (half-FOV
+    // ≈ 2.1) — the same anchor/drift would carry the blob clean off the
+    // right edge. So both the anchor and the drift amplitudes scale
+    // down on mobile to keep the blob fully on-screen.
     //
-    // Phases on the y-drift sines are tuned so dy(0) ≈ -0.22 — the
-    // blob enters the page in the lower portion of the banner and
-    // gradually drifts up through its cycle, rather than starting at
-    // the top.
-    const meshAnchorX = 2.0;
-    const meshAnchorY = 0.0;
+    // Phases on the y-drift sines are tuned so dy(0) ≈ -0.22 — the blob
+    // enters the page in the lower portion of the banner and gradually
+    // drifts up through its cycle, rather than starting at the top.
+    // Desktop: blob lives right of the title in the open right half.
+    // Mobile: the title + tagline fill the upper banner, so the blob is
+    // anchored low (meshAnchorY negative = lower) and slightly right,
+    // tucking into the open band beneath the text.
+    const meshAnchorX = isMobile ? 0.45 : 2.0;
+    const meshAnchorY = isMobile ? -0.55 : 0.0;
+    const dxAmp1 = isMobile ? 0.55 : 1.30;
+    const dxAmp2 = isMobile ? 0.25 : 0.60;
+    const dyAmp1 = isMobile ? 0.30 : 0.40;
+    const dyAmp2 = isMobile ? 0.14 : 0.18;
     const updateMeshPosition = (t: number) => {
-      const dx = 1.30 * Math.sin(t * 0.09) + 0.60 * Math.sin(t * 0.16 + 1.4);
-      const dy = 0.40 * Math.sin(t * 0.12 + 3.7) + 0.18 * Math.cos(t * 0.08 + 1.65);
+      const dx = dxAmp1 * Math.sin(t * 0.09) + dxAmp2 * Math.sin(t * 0.16 + 1.4);
+      const dy = dyAmp1 * Math.sin(t * 0.12 + 3.7) + dyAmp2 * Math.cos(t * 0.08 + 1.65);
       mcubes.position.set(meshAnchorX + dx, meshAnchorY + dy, 0);
     };
 
-    // Throttle the expensive marching-cubes polygonize to 30Hz.
-    const MC_UPDATE_INTERVAL = 1 / 30;
+    // Throttle the expensive marching-cubes polygonize: 30Hz on desktop,
+    // 20Hz on mobile. The mesh translation + rotation still run every
+    // rAF frame so motion stays smooth; only the field rebuild is
+    // throttled. 20Hz is still smooth enough for the slow morph and cuts
+    // another third off the mobile CPU cost.
+    const MC_UPDATE_INTERVAL = isMobile ? 1 / 20 : 1 / 30;
     let lastMcUpdate = -1;
 
     // Intro: the blob smoothly grows from a speck (scale 0) to its full

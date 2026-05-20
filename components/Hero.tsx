@@ -83,7 +83,7 @@ export default function Hero() {
 
   return (
     <div className="hero-root">
-      <h1 className="sr-only">Michael Vidal — AI Engineer</h1>
+      <h1 className="sr-only">Mike Vidal — AI Engineer</h1>
       <canvas ref={canvasRef} className="hero-canvas" />
       <HeroOverlay
         topLeftRef={topLeftRef}

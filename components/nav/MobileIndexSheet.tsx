@@ -9,7 +9,7 @@ import { OWNER_EMAIL, OWNER_GITHUB } from "@/lib/siteConfig";
  * Mobile-only nav rendered on every page (home, /work, /work/[slug]). Two states:
  *
  *   • Collapsed — a slim, edge-to-edge bar at the bottom of the viewport
- *     showing the "MICHAEL" mark and an "INDEX · N" trigger. Tap anywhere on
+ *     showing the "MIKE" mark and an "INDEX · N" trigger. Tap anywhere on
  *     the bar opens the sheet.
  *   • Expanded — a full-height bottom sheet that slides up over a dim
  *     backdrop. Inside: an editorial numbered list of every project
@@ -71,7 +71,7 @@ export default function MobileIndexSheet({ activeSlug }: MobileIndexSheetProps =
         aria-controls="mob-sheet"
         onClick={() => setOpen(true)}
       >
-        <span className="mob-bar-brand">MICHAEL</span>
+        <span className="mob-bar-brand">MIKE</span>
         <span className="mob-bar-divider" aria-hidden="true">/</span>
         <span className="mob-bar-label">INDEX</span>
         <span className="mob-bar-count">{String(PROJECTS.length).padStart(2, "0")}</span>

@@ -17,7 +17,7 @@ import Link from "next/link";
 export default function ProjectTopbar() {
   return (
     <header className="page-topbar">
-      <Link href="/" className="page-topbar-home" aria-label="Home">MICHAEL VIDAL</Link>
+      <Link href="/" className="page-topbar-home" aria-label="Home">MIKE VIDAL</Link>
     </header>
   );
 }

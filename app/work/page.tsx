@@ -15,7 +15,7 @@ import MobileIndexSheet from "@/components/nav/MobileIndexSheet";
  */
 
 export const metadata: Metadata = {
-  title: "Work — Michael Vidal",
+  title: "Work — Mike Vidal",
   description: "Applied AI systems — built solo, shipped to production.",
 };
 
@@ -63,7 +63,7 @@ export default function WorkIndex() {
       </PageEnter>
 
       <footer className="project-page-footer">
-        Michael Vidal · Miami · open to remote
+        Mike Vidal · Miami · open to remote
       </footer>
 
       {/* Persistent bottom nav — same pattern as the home and project pages. */}

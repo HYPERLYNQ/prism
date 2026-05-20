@@ -60,7 +60,7 @@ export default function HeroOverlay(props: HeroOverlayProps) {
       <div className={`ui${ready ? " in" : ""}`}>
         <div className="corner-tl" ref={topLeftRef}>
           <div className="masthead">
-            <span className="wm">MICHAEL VIDAL</span>
+            <span className="wm">MIKE VIDAL</span>
             <span className="m-sep">·</span>
             <span className="m-role">AI Engineer</span>
           </div>

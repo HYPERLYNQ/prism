@@ -3,7 +3,7 @@
  *
  * Two schemas are emitted:
  *   • `Person` — on the home page; gives Google the data it needs to build a
- *     "knowledge card" style result for "Michael Vidal AI Engineer".
+ *     "knowledge card" style result for "Mike Vidal AI Engineer".
  *   • `CreativeWork` — one per project page; lets search engines understand
  *     each case study as a discrete piece of work with an author.
  *
@@ -23,7 +23,7 @@ import {
 } from "./siteConfig";
 
 /**
- * `Person` schema — Michael Vidal as the site owner.
+ * `Person` schema — Mike Vidal as the site owner.
  * Reference: https://schema.org/Person
  */
 export function personSchema() {

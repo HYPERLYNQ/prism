@@ -4,7 +4,7 @@ import { personSchema } from "@/lib/jsonLd";
 /**
  * Home route — renders the WebGL `Hero` and emits the site's `Person`
  * JSON-LD structured data so search engines can build a knowledge-card-style
- * result for "Michael Vidal AI Engineer".
+ * result for "Mike Vidal AI Engineer".
  */
 export default function Home() {
   const schema = personSchema();
