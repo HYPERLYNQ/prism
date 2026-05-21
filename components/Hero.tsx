@@ -84,6 +84,15 @@ export default function Hero() {
   return (
     <div className="hero-root">
       <h1 className="sr-only">Mike Vidal — AI Engineer</h1>
+      {/* Crawlable description — the hero's value-prop phrases are WebGL geometry,
+          not DOM text, so without this the home page has almost no indexable copy.
+          Kept accurate: applied AI / shipping LLM-powered systems, not building models. */}
+      <p className="sr-only">
+        Applied-AI engineer based in Miami, open to remote. I ship LLM-powered
+        systems to production — multi-stage pipelines, tool-use, structured
+        output, and human-in-the-loop workflows — building real, deployed
+        products rather than demos.
+      </p>
       <canvas ref={canvasRef} className="hero-canvas" />
       <HeroOverlay
         topLeftRef={topLeftRef}

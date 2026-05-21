@@ -1,5 +1,5 @@
 import { ImageResponse } from "next/og";
-import { OG_IMAGE_SIZE, OWNER_NAME, OWNER_ROLE, SITE_NAME } from "@/lib/siteConfig";
+import { OG_IMAGE_SIZE, OWNER_LOCATION, OWNER_NAME, OWNER_ROLE, SITE_NAME } from "@/lib/siteConfig";
 
 /**
  * `app/opengraph-image.tsx` — Next 16's root Open Graph image convention.
@@ -80,9 +80,10 @@ export default async function OpenGraphImage() {
           </div>
         </div>
 
-        {/* Bottom — location line. Use a literal `&` character (not the `&amp;` entity)
-            because Satori passes JSX text through to its renderer without HTML-entity
-            decoding; the entity would appear verbatim in the output. */}
+        {/* Bottom — name + location line. Driven by siteConfig so it tracks the
+            brand (was previously a hardcoded — and stale — name string). Use a
+            literal `&` character (not the `&amp;` entity) because Satori passes
+            JSX text through to its renderer without HTML-entity decoding. */}
         <div
           style={{
             display: "flex",
@@ -92,7 +93,7 @@ export default async function OpenGraphImage() {
             opacity: 0.5,
           }}
         >
-          {"michael vidal · miami · open to remote"}
+          {`${OWNER_NAME} · ${OWNER_LOCATION}`}
         </div>
       </div>
     ),

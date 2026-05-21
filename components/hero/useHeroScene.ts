@@ -334,6 +334,21 @@ export function useHeroScene(
     let disposed = false;
     let raf = 0;
 
+    // Respect prefers-reduced-motion: skip the continuous WebGL animation loop
+    // (the fly-in, breathing, phrase dissolves, particle swarm) and instead
+    // render a single static frame of the first phrase. Saves these users a
+    // heavy, sustained rAF loop and avoids motion they've asked not to see.
+    const prefersReducedMotion =
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    /** Render one resting frame: camera at rest, wordmark at home + full opacity. */
+    function renderStaticFrame(): void {
+      camera.position.set(0, 0, baseZ);
+      camera.lookAt(lookTarget);
+      heroMaterial.opacity = 1;
+      composer.render();
+    }
+
     new FontLoader().load("/fonts/helvetiker_bold.typeface.json", (loaded) => {
       if (disposed) return;
       font = loaded;
@@ -346,6 +361,9 @@ export function useHeroScene(
       attachPhraseToRoot(wordRoot, phraseLetterMeshes[phraseIndex], heroMaterial);
       sceneReady = true;
       onReady();
+      // Reduced-motion: the rAF loop never starts, so paint the resting frame
+      // here once the wordmark exists.
+      if (prefersReducedMotion) renderStaticFrame();
     });
 
     /* ── animation loop ────────────────────────────────────────── */
@@ -524,7 +542,9 @@ export function useHeroScene(
         camera.layers.enableAll();
       }
     }
-    animate();
+    // Reduced-motion users get a single static frame (rendered in the font-load
+    // callback) instead of the continuous loop.
+    if (!prefersReducedMotion) animate();
 
     /* ── teardown ──────────────────────────────────────────────── */
     return () => {

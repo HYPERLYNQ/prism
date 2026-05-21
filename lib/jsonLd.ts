@@ -14,6 +14,7 @@
 
 import type { Project } from "./projects";
 import {
+  OWNER_EMAIL,
   OWNER_GITHUB,
   OWNER_LOCATION,
   OWNER_NAME,
@@ -33,7 +34,11 @@ export function personSchema() {
     name: OWNER_NAME,
     url: SITE_URL,
     jobTitle: OWNER_ROLE,
+    description: "Applied-AI engineer shipping LLM-powered systems to production.",
+    email: `mailto:${OWNER_EMAIL}`,
     homeLocation: OWNER_LOCATION,
+    // External profiles that corroborate identity for the knowledge panel.
+    // TODO: add the LinkedIn URL here once confirmed.
     sameAs: [OWNER_GITHUB],
     worksFor: {
       "@type": "Organization",
@@ -55,7 +60,10 @@ export function creativeWorkSchema(project: Project) {
     headline: project.tagline,
     description: project.summary,
     url: `${SITE_URL}/work/${project.slug}`,
-    dateCreated: project.year,
+    // `project.year` is a human range like "2025–26"; schema.org dateCreated
+    // expects an ISO date, so emit just the first 4-digit year (invalid range
+    // strings are silently ignored by crawlers otherwise).
+    dateCreated: project.year.match(/\d{4}/)?.[0] ?? project.year,
     author: {
       "@type": "Person",
       name: OWNER_NAME,

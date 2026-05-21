@@ -1,20 +1,18 @@
 import { ImageResponse } from "next/og";
 
 /**
- * `app/icon.tsx` — Next 16's dynamic favicon convention.
+ * `app/apple-icon.tsx` — Next's apple-touch-icon convention.
  *
- * Generates a 32×32 PNG at request time: a black square with a bold white "M"
- * in a system sans-serif. Same lockup style as the masthead.
- *
- * Next handles caching automatically (the response is built once per deploy).
- * Multiple sizes can be added by exporting additional files (e.g. `apple-icon.tsx`).
+ * 180×180 PNG (the iOS home-screen size): the same black square + bold white
+ * "M" lockup as the favicon (`icon.tsx`), scaled up. Next auto-injects the
+ * `<link rel="apple-touch-icon">` tag.
  */
 
 export const runtime = "edge";
-export const size = { width: 32, height: 32 } as const;
+export const size = { width: 180, height: 180 } as const;
 export const contentType = "image/png";
 
-export default function Icon() {
+export default function AppleIcon() {
   return new ImageResponse(
     (
       <div
@@ -26,9 +24,9 @@ export default function Icon() {
           justifyContent: "center",
           background: "#0b0e10",
           color: "#ffffff",
-          fontSize: 22,
+          fontSize: 120,
           fontWeight: 700,
-          letterSpacing: -0.5,
+          letterSpacing: -2,
           fontFamily: "system-ui, sans-serif",
         }}
       >

@@ -27,7 +27,7 @@ const mono = JetBrains_Mono({
   display: "swap",
 });
 
-const description = "Applied AI — LLM systems shipped to production. Solo.";
+const description = "Applied AI — LLM-powered systems shipped to production. Solo.";
 /* `OWNER_NAME` === `SITE_NAME` post brand-consolidation, so the title is just
  * "Mike Vidal — AI Engineer" rather than the duplicated triple. */
 const fullTitle = `${OWNER_NAME} — ${OWNER_ROLE}`;

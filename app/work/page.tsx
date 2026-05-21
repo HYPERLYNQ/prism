@@ -15,7 +15,9 @@ import MobileIndexSheet from "@/components/nav/MobileIndexSheet";
  */
 
 export const metadata: Metadata = {
-  title: "Work — Mike Vidal",
+  // Bare "Work" — the root layout's title.template appends " · Mike Vidal", so a
+  // string here that already includes the name would double-brand it.
+  title: "Work",
   description: "Applied AI systems — built solo, shipped to production.",
 };
 
