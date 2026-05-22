@@ -143,6 +143,8 @@ export default function MobileIndexSheet({ activeSlug }: MobileIndexSheetProps =
 
           <div className="mob-sheet-foot">
             <div className="mob-sheet-foot-links">
+              <Link href="/blog" onClick={close}>writing</Link>
+              <span className="mob-sheet-foot-sep" aria-hidden="true">·</span>
               <a href={OWNER_GITHUB} target="_blank" rel="noopener noreferrer">github ↗</a>
               <span className="mob-sheet-foot-sep" aria-hidden="true">·</span>
               <a href={`mailto:${OWNER_EMAIL}`}>email ↗</a>

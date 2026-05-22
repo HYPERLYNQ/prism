@@ -13,6 +13,7 @@
  */
 
 import type { Project } from "./projects";
+import type { PostMeta } from "./blog";
 import {
   OWNER_EMAIL,
   OWNER_GITHUB,
@@ -70,5 +71,28 @@ export function creativeWorkSchema(project: Project) {
       url: SITE_URL,
     },
     keywords: project.stack.join(", "),
+  } as const;
+}
+
+/**
+ * `BlogPosting` schema — one blog post. Gives search engines the authored
+ * article data (headline, dates, author, keywords) so posts can surface as
+ * rich results and reinforce author authority.
+ * Reference: https://schema.org/BlogPosting
+ */
+export function blogPostingSchema(meta: PostMeta, slug: string) {
+  const url = `${SITE_URL}/blog/${slug}`;
+  return {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: meta.title,
+    description: meta.description,
+    url,
+    datePublished: meta.date,
+    dateModified: meta.updated ?? meta.date,
+    keywords: meta.tags?.join(", "),
+    author: { "@type": "Person", name: OWNER_NAME, url: SITE_URL },
+    publisher: { "@type": "Person", name: OWNER_NAME, url: SITE_URL },
+    mainEntityOfPage: { "@type": "WebPage", "@id": url },
   } as const;
 }

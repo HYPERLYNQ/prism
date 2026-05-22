@@ -55,6 +55,10 @@ export default function BottomStrip({ activeSlug }: BottomStripProps) {
             );
           })}
         </nav>
+        {/* Writing is a top-level destination (peer to the Work switcher), not a
+            footer/contact link — clearer entry point + better crawl path. */}
+        <span className="sep" aria-hidden="true">·</span>
+        <Link href="/blog" className="strip-writing-link">writing</Link>
       </div>
       <div className="strip-r">
         <a href={OWNER_GITHUB} target="_blank" rel="noopener noreferrer">github ↗</a>

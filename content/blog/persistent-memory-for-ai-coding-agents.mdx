@@ -1,0 +1,72 @@
+export const metadata = {
+  title: "Why AI coding agents need persistent memory",
+  description:
+    "AI coding agents start every session from zero. Here's why that's the real bottleneck — and how I built file-based, hybrid-retrieval memory to fix it.",
+  date: "2026-05-22",
+  tags: ["LLM", "AI agents", "Claude Code", "retrieval", "MCP"],
+};
+
+Every AI coding session starts the same way: from zero. The model has no idea
+what we decided last time, which approach we already rejected, or that the
+"users" table doesn't actually have an `email` column. You re-explain. It
+re-suggests the thing that didn't work. The context you built up evaporates the
+moment the conversation ends.
+
+That gap — not raw model capability — is the thing that most often makes an
+agent feel junior. So I built [synaptic](/work/synaptic), a memory layer that
+gives a coding agent context which survives across sessions.
+
+## The problem isn't the model, it's the amnesia
+
+A capable model with no memory behaves like a brilliant contractor with
+no notebook. It can reason about anything in front of it, but it can't
+*accumulate*. Decisions, corrections, and hard-won project facts — the columns
+that don't exist, the deploy command, the convention you settled on — all live
+only in the current chat window. Close it and they're gone.
+
+The usual workarounds don't scale: pasting the same context every time, or
+stuffing a giant instructions file that the model half-reads. What you actually
+want is for the *relevant* prior context to show up automatically, and nothing
+else.
+
+## What I built
+
+synaptic captures three kinds of records to disk and recalls the relevant ones
+at the start of a new session:
+
+- **Decisions** — what we chose and why.
+- **Corrections** — when I told the agent it was wrong (so it stops repeating it).
+- **Project facts** — the mundane truths that get lost between sessions: schema
+  details, routes, env setup, test credentials.
+
+It runs as an [MCP](https://modelcontextprotocol.io) server with save / search /
+session tools, so the agent reads and writes memory itself, in the loop.
+
+## Why hybrid retrieval
+
+Recall is the whole game — surface the wrong memories and you've just added
+noise. So retrieval is hybrid:
+
+- **BM25 keyword search** for exact terms (a function name, a table, a flag).
+- **Semantic vector search** for meaning ("how do we handle auth?" matching a
+  note phrased differently).
+
+Both run locally — vectors via `sqlite-vec` and embeddings via Transformers.js —
+so there's no cloud dependency and nothing leaves the machine. For a tool that's
+reading your codebase's private context, local-only isn't a nice-to-have.
+
+## What it doesn't do (on purpose)
+
+It's not a "second brain" that hoards everything — that just recreates the noise
+problem on disk. It saves deliberately (decisions, corrections, facts), and it's
+a single retrieval pipeline, not a swarm of agents coordinating. The value is in
+*what* gets remembered and *when* it resurfaces, not in architectural drama.
+
+## The takeaway
+
+Most "make the agent smarter" effort goes into prompting and model choice. A
+surprising amount of the felt improvement comes from something more boring:
+letting it remember. If your agent keeps relearning the same things, the fix
+probably isn't a bigger model — it's a notebook.
+
+synaptic is open source. You can read more on the [project page](/work/synaptic).

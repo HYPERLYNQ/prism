@@ -301,6 +301,23 @@ body {
   color: var(--ink-3);
   margin: 0 5px;
 }
+/* Writing — top-level destination in the strip, peer to the Work switcher. */
+.strip-writing-link {
+  flex: 0 0 auto;
+  color: var(--ink);
+  text-decoration: none;
+  white-space: nowrap;
+  font-weight: 600;
+  font-size: 14.5px;
+  padding: 2px 4px 3px;
+  border-radius: 4px;
+  border-bottom: 1.5px solid color-mix(in srgb, var(--ink) 32%, transparent);
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.strip-writing-link:hover {
+  border-bottom-color: var(--ink);
+  background: color-mix(in srgb, var(--ink) 7%, transparent);
+}
 .strip-r {
   flex: 0 0 auto;
   display: flex;
@@ -1677,6 +1694,134 @@ body.dark .mob-sheet-panel {
   text-transform: uppercase;
   color: var(--ink-3);
   margin: 9px 0 0;
+}
+
+/* ── Blog index list ──────────────────────────────────────────────────
+ * Mirrors the work index: hairline-separated link rows that slide on hover. */
+.blog-empty { color: var(--ink-2); font-size: 15px; margin: 40px 0 0; }
+.blog-list {
+  list-style: none;
+  padding: 0;
+  margin: 40px 0 0;
+  border-top: 1px solid var(--hair);
+}
+.blog-item {
+  display: block;
+  padding: 24px 4px 24px 6px;
+  border-bottom: 1px solid var(--hair);
+  border-left: 3px solid transparent;
+  text-decoration: none;
+  color: var(--ink);
+  transition: padding-left 0.18s ease, border-color 0.18s, background 0.18s;
+}
+.blog-item:hover {
+  padding-left: 18px;
+  border-left-color: var(--ink-3);
+  background: color-mix(in srgb, var(--ink) 3%, transparent);
+}
+.blog-item-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 18px;
+}
+.blog-item-title {
+  font-family: var(--font-grotesk), sans-serif;
+  font-weight: 700;
+  font-size: 21px;
+  letter-spacing: -0.005em;
+}
+.blog-item-date {
+  font: 500 10px/1 var(--font-mono), monospace;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+.blog-item-desc { font-size: 14px; line-height: 1.6; color: var(--ink-2); margin: 8px 0 0; max-width: 64ch; }
+.blog-item-tags {
+  font: 500 10px/1 var(--font-mono), monospace;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin: 10px 0 0;
+}
+
+/* ── Blog post — header + prose ───────────────────────────────────────── */
+.blog-post-head { margin: 12px 0 36px; }
+.blog-post-title {
+  font-family: var(--font-grotesk), sans-serif;
+  font-weight: 700;
+  font-size: clamp(30px, 5vw, 50px);
+  letter-spacing: -0.015em;
+  line-height: 1.05;
+  margin: 0 0 16px;
+  max-width: 22ch;
+}
+.blog-post-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  font: 500 11px/1 var(--font-mono), monospace;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+/* The MDX body. Generous measure + rhythm; matches the editorial body type. */
+.blog-prose {
+  max-width: 68ch;
+  font-size: 16.5px;
+  line-height: 1.72;
+  color: var(--ink-2);
+}
+.blog-prose > * + * { margin-top: 1.25em; }
+.blog-prose h2 {
+  font-family: var(--font-grotesk), sans-serif;
+  font-weight: 600;
+  font-size: 23px;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  color: var(--ink);
+  margin-top: 2em;
+}
+.blog-prose h3 {
+  font-family: var(--font-grotesk), sans-serif;
+  font-weight: 600;
+  font-size: 18px;
+  color: var(--ink);
+  margin-top: 1.6em;
+}
+.blog-prose a {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--ink-3);
+  text-underline-offset: 3px;
+}
+.blog-prose a:hover { text-decoration-color: var(--ink); }
+.blog-prose ul, .blog-prose ol { padding-left: 1.3em; }
+.blog-prose li + li { margin-top: 0.5em; }
+.blog-prose strong { color: var(--ink); font-weight: 600; }
+.blog-prose code {
+  font: 0.86em/1 var(--font-mono), monospace;
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+  border-radius: 4px;
+  padding: 0.15em 0.4em;
+}
+.blog-prose pre {
+  background: var(--bg-deep, #0e1116);
+  color: #e6edf3;
+  border-radius: 10px;
+  padding: 18px 20px;
+  overflow-x: auto;
+  font: 13.5px/1.6 var(--font-mono), monospace;
+}
+.blog-prose pre code { background: none; padding: 0; font-size: 1em; }
+.blog-prose blockquote {
+  border-left: 2px solid var(--ink-3);
+  padding-left: 18px;
+  color: var(--ink-2);
+  font-style: italic;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────

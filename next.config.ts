@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import createMDX from "@next/mdx";
 
 /**
  * Security headers applied to every response. Built as a single block so the
@@ -59,6 +60,8 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Let `.md` / `.mdx` modules in `content/` be imported as components (blog posts).
+  pageExtensions: ["ts", "tsx", "md", "mdx"],
   // Apply the security headers to every route.
   async headers() {
     return [
@@ -70,4 +73,9 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// `@next/mdx` wires up the MDX loader so blog posts in `content/blog/*.mdx` can
+// be imported as React components (with an exported `metadata` object — no
+// frontmatter parser needed). No remark/rehype plugins yet (basic prose + CSS).
+const withMDX = createMDX({});
+
+export default withMDX(nextConfig);
