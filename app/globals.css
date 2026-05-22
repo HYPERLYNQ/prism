@@ -1140,10 +1140,12 @@ body.dark .mob-sheet-panel {
 /* Meta-grid card — year / role / built-with key-value pairs */
 /* Meta grid sits ABOVE the section two-column grid and spans the full
  * width of the project-page-wrap so it reads as the page's spec sheet. */
+/* Stacked, not a flat grid: the accent Status statement leads, then a quiet
+ * row of supporting facts. Hierarchy keeps it from reading busy. */
 .meta {
   display: flex;
-  flex-wrap: wrap;
-  gap: 28px 56px;
+  flex-direction: column;
+  gap: 22px;
   margin: 0;
   padding: 26px 0 30px;
   border-top: 1px solid var(--hair);
@@ -1157,9 +1159,19 @@ body.dark .mob-sheet-panel {
   margin-bottom: 7px;
 }
 .meta-val { font-size: 13px; color: var(--ink); }
-/* Status cell — the proof point. Accent-coloured so it reads first without a
- * badge or widget (UDO-style: typography does the work). */
-.meta-val-accent { color: var(--accent); font-weight: 500; }
+/* Status lead — the one element that pops: large, accent, the proof point. */
+.meta-lead-val {
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--accent);
+}
+/* Supporting facts (Year, Role) — small + quiet beneath the lead. */
+.meta-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 48px;
+}
 
 /* Body paragraphs */
 .body p {
