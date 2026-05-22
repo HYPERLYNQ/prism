@@ -134,8 +134,11 @@ export function useHeroScene(
     /* ── materials ─────────────────────────────────────────────── */
     // The default bg lives in CSS as the initial `--bg` value; we don't need to track
     // it in the scene closure since nothing in the three.js world reads it.
-    let heroTintHex = SWATCHES.find((s) => s.name === "ink")?.hex ?? "#15171C";
-    let debrisTintHex = SWATCHES.find((s) => s.name === "ink")?.hex ?? "#15171C";
+    // `ink` is always present in SWATCHES, so the lookup can't miss; the literal
+    // is a belt-and-suspenders fallback.
+    const inkHex = SWATCHES.find((s) => s.name === "ink")?.hex ?? "#15171C";
+    let heroTintHex = inkHex;
+    let debrisTintHex = inkHex;
     let matName: MatName = DEFAULT_FINISH;
 
     let heroMaterial = makePreset(matName, heroTintHex);

@@ -1,5 +1,6 @@
 import type { Project } from "@/lib/projects";
 import type { Swatch } from "@/lib/looks";
+import ProjectProofToken from "./ProjectProofToken";
 
 /**
  * The body section of a project page — everything between the gradient
@@ -31,10 +32,12 @@ export default function ProjectMeta({ project, accent }: ProjectMetaProps) {
 
   return (
     <div className="project-body" style={accentStyle}>
-      {project.status && (
-        <div className="project-status" role="status">
-          <span className="project-status-dot" aria-hidden="true" />
-          <span className="project-status-label">{project.status}</span>
+      {project.proof && (
+        <div className="project-proof" role="status">
+          <ProjectProofToken text={project.proof} tintHex={accent.hex} />
+          {project.status && (
+            <span className="project-proof-caption">{project.status}</span>
+          )}
         </div>
       )}
 

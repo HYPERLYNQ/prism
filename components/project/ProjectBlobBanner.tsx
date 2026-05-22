@@ -2,8 +2,8 @@
 
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
-import { MarchingCubes } from "three/examples/jsm/objects/MarchingCubes.js";
-import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
+import { MarchingCubes } from "three/addons/objects/MarchingCubes.js";
+import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 
 /**
  * Glossy 3D lava-lamp blob — animated MarchingCubes isosurface with real

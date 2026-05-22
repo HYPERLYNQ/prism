@@ -6,17 +6,13 @@ import type { Swatch } from "@/lib/looks";
  * The big coloured banner at the top of every `/work/[slug]` page.
  *
  * Layout:
- *   • Animated gradient mesh fills the banner background (`ProjectGradientMesh`).
+ *   • An iridescent WebGL metaball blob (`ProjectBlobBanner`) drifts in the
+ *     banner, tinted per project.
  *   • Title block sits on top: eyebrow (year · role), big project name,
  *     tagline. Centred vertically with generous padding.
  *
- * Previously the right side hosted a `MiniDebrisCanvas` that recycled the
- * home page's 3-D debris shapes at smaller scale — it felt generic and
- * disconnected from each project's identity. The gradient mesh differentiates
- * each project purely by its accent colour + a unique animation seed (no
- * shared 3-D primitives).
- *
- * Pure Server Component — no client boundary needed.
+ * `ProjectHeroBanner` itself is a pure Server Component (just markup); the
+ * blob is the only client boundary, isolated in `ProjectBlobBanner`.
  */
 
 type ProjectHeroBannerProps = {

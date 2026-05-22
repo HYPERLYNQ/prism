@@ -1112,99 +1112,6 @@ body.dark .mob-sheet-panel {
   pointer-events: none;
 }
 
-/* ── ProjectGradientMesh — legacy animated CSS gradient mesh (kept for fallback)──
- * Three blurred blobs drift on overlapping keyframes. Tuning notes:
- *   • Durations are short enough (14–18s) that the motion is obvious without
- *     watching for a full cycle.
- *   • Translate amplitudes (~30–40%) are big enough that the blobs visibly
- *     sweep through the banner area, not just nudge at the edges.
- *   • Each blob starts at a different position AND uses `animation-delay` per
- *     project seed, so no two projects look identical at any moment.
- *   • `mix-blend-mode: screen` lifts the accent into highlights without going
- *     desaturated; `filter: blur` softens the edges into a true mesh feel.
- */
-.project-hero-mesh {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-.project-hero-mesh-blob {
-  position: absolute;
-  width: 60%;
-  aspect-ratio: 1 / 1;
-  border-radius: 50%;
-  filter: blur(50px);
-  mix-blend-mode: screen;
-  will-change: transform;
-  animation-delay: var(--mesh-delay, 0s);
-}
-.project-hero-mesh-blob-a {
-  top: -20%;
-  left: -15%;
-  background: color-mix(in srgb, var(--mesh-accent) 50%, white);
-  opacity: 0.85;
-  /* `infinite` rather than `alternate` lets the keyframe define a full loop
-   * (start === end position), so the blob traces a smooth curved orbit
-   * instead of bouncing back along the same line. */
-  animation: project-hero-mesh-a 11s ease-in-out infinite;
-}
-.project-hero-mesh-blob-b {
-  top: 10%;
-  right: -20%;
-  background: var(--mesh-accent-deep);
-  opacity: 0.75;
-  animation: project-hero-mesh-b 13s ease-in-out infinite;
-}
-.project-hero-mesh-blob-c {
-  bottom: -25%;
-  left: 25%;
-  background: color-mix(in srgb, var(--mesh-accent) 25%, white);
-  opacity: 0.75;
-  animation: project-hero-mesh-c 9s ease-in-out infinite;
-}
-/* A faint grain veil — adds editorial texture and breaks the gradient into
- * something photographic rather than glassy. Pure CSS via stacked radial
- * gradients (cheap, no asset). */
-.project-hero-mesh-grain {
-  position: absolute;
-  inset: 0;
-  background-image:
-    radial-gradient(rgba(255, 255, 255, 0.03) 0.6px, transparent 0.8px),
-    radial-gradient(rgba(0, 0, 0, 0.04) 0.6px, transparent 0.8px);
-  background-size: 3px 3px, 5px 5px;
-  background-position: 0 0, 1px 1px;
-  mix-blend-mode: overlay;
-  pointer-events: none;
-  opacity: 0.5;
-}
-/* Each keyframe loops through 4 stops so the blob orbits in a curved path
- * (loop closes — `0%` and `100%` match). Translate amplitudes are big
- * (50-65%) so the motion is unmistakable. */
-@keyframes project-hero-mesh-a {
-  0%   { transform: translate3d(0, 0, 0)      scale(1);    }
-  33%  { transform: translate3d(55%, 20%, 0)  scale(1.25); }
-  66%  { transform: translate3d(30%, 50%, 0)  scale(0.95); }
-  100% { transform: translate3d(0, 0, 0)      scale(1);    }
-}
-@keyframes project-hero-mesh-b {
-  0%   { transform: translate3d(0, 0, 0)        scale(1.1);  }
-  33%  { transform: translate3d(-50%, 35%, 0)   scale(0.85); }
-  66%  { transform: translate3d(-25%, -15%, 0)  scale(1.3);  }
-  100% { transform: translate3d(0, 0, 0)        scale(1.1);  }
-}
-@keyframes project-hero-mesh-c {
-  0%   { transform: translate3d(0, 0, 0)         scale(1);    }
-  33%  { transform: translate3d(-40%, -45%, 0)   scale(1.2);  }
-  66%  { transform: translate3d(40%, -25%, 0)    scale(0.9);  }
-  100% { transform: translate3d(0, 0, 0)         scale(1);    }
-}
-/* Respect users who'd rather not see motion. */
-@media (prefers-reduced-motion: reduce) {
-  .project-hero-mesh-blob { animation: none; }
-}
-
 /* Body wrap — narrow column for content blocks. */
 /* Project pages use a wider wrap than the original (760px) so each section
  * can split into a two-column grid: a small label column on the left and
@@ -1276,34 +1183,6 @@ body.dark .mob-sheet-panel {
  * the legacy rule in place caused a specificity collision: `.project-page
  * h2` is (0,0,1,1) and beats `.project-section-title` (0,0,1,0).) */
 
-/* Highlights — bulleted list. `highlights-arrows` swaps the bullet for `→`. */
-ul.highlights {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-ul.highlights li {
-  font-size: 14px;
-  line-height: 1.65;
-  color: var(--ink-2);
-  padding: 12px 0 12px 26px;
-  border-bottom: 1px solid var(--hair);
-  position: relative;
-}
-ul.highlights li::before {
-  content: "·";
-  position: absolute;
-  left: 6px;
-  color: var(--ink-3);
-}
-ul.highlights-arrows li::before {
-  content: "→";
-  left: 0;
-  top: 12px;
-  color: var(--ink-3);
-  font-size: 13px;
-}
-
 /* Stack — bordered chip per technology. */
 .stack {
   display: flex;
@@ -1323,7 +1202,7 @@ ul.highlights-arrows li::before {
  * 8b. Project pages — editorial "magazine" body
  *
  * Everything between the gradient banner and the prev/next pager:
- *   • `.project-status` — accent pill with a live-dot at the very top
+ *   • `.project-proof` — 3D chrome proof token + crawlable caption at the top
  *   • `.project-section` — numbered editorial sections (01 OVERVIEW, etc.)
  *     with an oversized accent numeral in the left margin on wide viewports
  *   • `.body-editorial` + `.has-drop-cap` — large grotesk drop cap on the
@@ -1339,40 +1218,27 @@ ul.highlights-arrows li::before {
 
 .project-body { position: relative; }
 
-/* ── Status badge — credibility headline for the page ─────────────────
- * Beefed up because this is the single most important proof point on
- * the page (live in App Store / open source / etc.). Big enough that
- * readers see it before the meta grid. */
-.project-status {
-  display: inline-flex;
+/* ── Proof point — 3D chrome token + caption ──────────────────────────
+ * The single most important credibility signal on the page. A short tag
+ * (version / LIVE / BUILDING) extruded in mirror chrome via WebGL
+ * (`ProjectProofToken`), with the longer status string beside it as the
+ * crawlable, accessible caption. Replaces the old accent live-dot pill. */
+.project-proof {
+  display: flex;
   align-items: center;
-  gap: 11px;
-  padding: 10px 18px 10px 13px;
-  margin: 0 0 36px;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--accent) 48%, var(--hair));
-  background: color-mix(in srgb, var(--accent) 10%, transparent);
-  font: 500 13px/1 var(--font-mono), monospace;
+  gap: 16px;
+  margin: 0 0 34px;
+}
+.project-proof-token {
+  flex: 0 0 auto;
+  width: 168px;
+  height: 64px;
+}
+.project-proof-caption {
+  font: 500 12.5px/1.4 var(--font-mono), monospace;
   letter-spacing: 0.04em;
-  color: var(--ink);
+  color: var(--ink-2);
 }
-.project-status-dot {
-  width: 9px;
-  height: 9px;
-}
-.project-status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent);
-  animation: project-status-pulse 2.4s ease-in-out infinite;
-}
-@keyframes project-status-pulse {
-  0%, 100% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent); }
-  50%      { box-shadow: 0 0 0 7px color-mix(in srgb, var(--accent) 10%, transparent); }
-}
-.project-status-label { white-space: nowrap; }
 
 /* ── Section: asymmetric two-column grid ──────────────────────────────
  *
@@ -1575,7 +1441,7 @@ ul.highlights-arrows li::before {
   .project-section-title { font-size: 15px; }
   .meta { gap: 20px 32px; padding: 22px 0 24px; }
   .project-hero-banner-tagline { font-size: 15.5px; max-width: 100%; }
-  .project-status { padding: 9px 14px 9px 12px; margin-bottom: 28px; }
+  .project-proof { gap: 13px; margin-bottom: 28px; }
 }
 
 /* Prev/next pager — two big card links wrapping around the project list. */
@@ -1652,7 +1518,7 @@ ul.highlights-arrows li::before {
 .project-animated .project-hero-banner-title,
 .project-animated .project-hero-banner-tagline,
 .project-animated .project-page-crumb,
-.project-animated .project-status,
+.project-animated .project-proof,
 .project-animated .meta > *,
 .project-animated .project-section-num,
 .project-animated .project-section-title,
@@ -1832,17 +1698,16 @@ ul.highlights-arrows li::before {
   }
   .project-hero-banner-tagline { font-size: 15px; }
   .project-page-wrap { padding: 32px 20px 72px; }
-  .project-status {
-    padding: 8px 13px 8px 11px;
-    font-size: 11.5px;
-    gap: 9px;
+  .project-proof {
+    /* Stack the chrome token over its caption on phones so long status
+     * strings ("Live in the Shopify App Store") get full width to wrap. */
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
     margin-bottom: 26px;
   }
-  .project-status-label {
-    /* Long status strings like "Live in the Shopify App Store" need to be
-     * able to wrap on a phone instead of overflowing the pill. */
-    white-space: normal;
-  }
+  .project-proof-token { width: 150px; height: 58px; }
+  .project-proof-caption { font-size: 11.5px; }
   .project-section { margin-top: 64px; row-gap: 18px; }
   .project-section:first-of-type { margin-top: 48px; }
   .project-section-header { gap: 12px; }
