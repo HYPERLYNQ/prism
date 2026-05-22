@@ -1164,7 +1164,7 @@ body.dark .mob-sheet-panel {
   align-items: center;
   justify-content: center;
   color: var(--accent);
-  font-size: 12px;
+  font-size: 16px;
   line-height: 1;
   /* slow continuous spin — a crafted accent detail, not a pulsing status dot */
   animation: status-mark-spin 5s linear infinite;
