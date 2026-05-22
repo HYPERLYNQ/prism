@@ -1159,12 +1159,22 @@ body.dark .mob-sheet-panel {
   color: var(--ink);
 }
 .project-status-mark {
-  width: 7px;
-  height: 7px;
   flex: 0 0 auto;
-  background: var(--accent);
-  transform: rotate(45deg); /* diamond, not a dot */
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+  font-size: 12px;
+  line-height: 1;
+  /* slow continuous spin — a crafted accent detail, not a pulsing status dot */
+  animation: status-mark-spin 5s linear infinite;
+}
+.project-status-mark::before { content: "\2733"; } /* ✳ eight-spoked asterisk */
+@keyframes status-mark-spin {
+  to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .project-status-mark { animation: none; }
 }
 .project-status-label { white-space: nowrap; }
 
