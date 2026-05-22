@@ -1,6 +1,5 @@
 import type { Project } from "@/lib/projects";
 import type { Swatch } from "@/lib/looks";
-import ProjectProofToken from "./ProjectProofToken";
 
 /**
  * The body section of a project page — everything between the gradient
@@ -32,16 +31,10 @@ export default function ProjectMeta({ project, accent }: ProjectMetaProps) {
 
   return (
     <div className="project-body" style={accentStyle}>
-      {project.proof && (
-        <div className="project-proof" role="status">
-          <ProjectProofToken text={project.proof} tintHex={accent.hex} />
-          {project.status && (
-            <span className="project-proof-caption">{project.status}</span>
-          )}
-        </div>
-      )}
-
+      {/* Meta grid — Status leads (the proof point), accent-coloured, then the
+          standard year / role / stack cells. One aligned grid, no widget. */}
       <div className="meta">
+        {project.status && <MetaCell label="Status" value={project.status} accent />}
         <MetaCell label="Year" value={project.year} />
         <MetaCell label="Role" value={project.role} />
         {project.stack.length > 0 && (
@@ -98,12 +91,14 @@ export default function ProjectMeta({ project, accent }: ProjectMetaProps) {
   );
 }
 
-/** Single key/value cell inside the meta-grid card. */
-function MetaCell({ label, value }: { label: string; value: string }) {
+/** Single key/value cell inside the meta-grid card. `accent` tints the value
+ *  with the project colour — used for the Status cell so the proof point reads
+ *  first without any badge or widget. */
+function MetaCell({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
   return (
     <div>
       <div className="meta-key">{label}</div>
-      <div className="meta-val">{value}</div>
+      <div className={accent ? "meta-val meta-val-accent" : "meta-val"}>{value}</div>
     </div>
   );
 }

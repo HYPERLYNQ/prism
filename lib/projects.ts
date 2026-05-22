@@ -43,13 +43,6 @@ export type Project = {
    */
   status?: string;
   /**
-   * Short proof tag rendered as the 3D chrome token at the top of the project
-   * page (see `ProjectProofToken`). Kept terse because it's extruded type — a
-   * version string ("v1.7.6"), "LIVE", or "BUILDING". The longer `status`
-   * string sits beside it as the crawlable/accessible caption.
-   */
-  proof?: string;
-  /**
    * Accent swatch name (must match a `SWATCHES` entry in `lib/looks.ts`).
    * Drives the banner gradient mesh, the work-index left-bar hover colour, and
    * the active-project highlight in the mobile sheet. Explicit per project so
@@ -92,7 +85,6 @@ export const PROJECTS: Project[] = [
       "Node 22+",
     ],
     status: "Open source · v1.7.6 on npm",
-    proof: "v1.7.6",
     summary:
       "A memory layer for Claude Code: captures decisions, corrections, and project facts as structured records on disk and recalls the relevant ones at the start of a new session, so context isn't lost between conversations. Hybrid retrieval — BM25 keyword + semantic vector (sqlite-vec + Transformers.js running locally). Shipped as an MCP server, published to npm as @hyperlynq/synaptic, runs entirely local with zero cloud dependencies.",
     highlights: [
@@ -121,7 +113,6 @@ export const PROJECTS: Project[] = [
       "Vite 6",
     ],
     status: "Live in the Shopify App Store",
-    proof: "LIVE",
     summary:
       "A multi-tenant B2B customer-approval and wholesale-pricing app for Shopify, live in the Shopify App Store. Merchants run tiered pricing, custom registration forms (license #, tax ID, business documents), and automated approval workflows. Shopify Functions in the extensions workspace enforce purchase restrictions and apply wholesale discounts server-side, so unapproved customers can't reach checkout. Built on the Shopify App React Router framework with Prisma session storage. Marketing site at wholesaleharmony.com — App Store listing has a product video + screenshots.",
     highlights: [
@@ -152,7 +143,6 @@ export const PROJECTS: Project[] = [
       "SQLite",
     ],
     status: "In active build · private repo",
-    proof: "BUILDING",
     summary:
       "Pings public channels — App Store reviews, Reddit, Shopify Community, job boards — for high-intent signals, classifies leads with a Sonnet-4.6 classifier (tool-use + structured output + prompt caching), finds contacts, drafts personalised outreach, routes each draft through a Telegram human-approval gate, and sends accepted ones via Smartlead with webhook reply tracking. End-to-end pipeline running unattended; humans only see the approval queue.",
     highlights: [
@@ -181,7 +171,6 @@ export const PROJECTS: Project[] = [
       "Tailwind v4",
     ],
     status: "In active build · private repo",
-    proof: "BUILDING",
     summary:
       "A SaaS for YouTube / Instagram / TikTok creators that scores content for virality and surfaces emerging trends. Uses the Claude API for content-DNA scoring against algorithm gates (hook, payoff, retention shape) and visualises portfolio-level momentum across channels. Pulls live YouTube data via googleapis. Next.js 16 dashboard with workspace + multi-channel support, NextAuth + Prisma adapter, and a Recharts-based analytics layer.",
     highlights: [
@@ -211,7 +200,6 @@ export const PROJECTS: Project[] = [
       "OS keychain (keyring)",
     ],
     status: "Pre-release · v0.1.5",
-    proof: "v0.1.5",
     summary:
       "A native desktop shipping tool for the solo shipper who buys and prints 50+ labels a day and wants a purpose-built UI instead of Shippo's web dashboard. Tauri 2 + Rust client with a React 19 frontend. Paste an address → regex parse → verify via Shippo → rate-shop → buy → silent print to the default 4×6 thermal printer. Customs forms appear automatically for international destinations. API credentials live in the OS keychain, never in plaintext, and every billable label purchase is gated behind explicit user confirmation.",
     highlights: [
@@ -241,7 +229,6 @@ export const PROJECTS: Project[] = [
       "React 19 + Vite + TypeScript",
     ],
     status: "In active build · private repo",
-    proof: "BUILDING",
     summary:
       "An NBA betting-intelligence SaaS. Backend is FastAPI + async SQLAlchemy on Postgres, with Celery workers running on Redis to ingest live game data via nba_api and to retrain prediction models (XGBoost + LightGBM) on a schedule. Surfaces line shopping across sportsbooks, bankroll + bet-history tracking, and live scores tied to open positions. React 19 + Vite frontend with TanStack Query and Recharts. Stripe-billed.",
     highlights: [

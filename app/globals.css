@@ -1157,6 +1157,9 @@ body.dark .mob-sheet-panel {
   margin-bottom: 7px;
 }
 .meta-val { font-size: 13px; color: var(--ink); }
+/* Status cell — the proof point. Accent-coloured so it reads first without a
+ * badge or widget (UDO-style: typography does the work). */
+.meta-val-accent { color: var(--accent); font-weight: 500; }
 
 /* Body paragraphs */
 .body p {
@@ -1202,7 +1205,8 @@ body.dark .mob-sheet-panel {
  * 8b. Project pages — editorial "magazine" body
  *
  * Everything between the gradient banner and the prev/next pager:
- *   • `.project-proof` — 3D chrome proof token + crawlable caption at the top
+ *   • `.meta` — key/value grid; the Status cell (`.meta-val-accent`) is the
+ *     accent-coloured proof point that leads the grid
  *   • `.project-section` — numbered editorial sections (01 OVERVIEW, etc.)
  *     with an oversized accent numeral in the left margin on wide viewports
  *   • `.body-editorial` + `.has-drop-cap` — large grotesk drop cap on the
@@ -1217,28 +1221,6 @@ body.dark .mob-sheet-panel {
  * ──────────────────────────────────────────────────────────────────────── */
 
 .project-body { position: relative; }
-
-/* ── Proof point — 3D chrome token + caption ──────────────────────────
- * The single most important credibility signal on the page. A short tag
- * (version / LIVE / BUILDING) extruded in mirror chrome via WebGL
- * (`ProjectProofToken`), with the longer status string beside it as the
- * crawlable, accessible caption. Replaces the old accent live-dot pill. */
-.project-proof {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin: 0 0 34px;
-}
-.project-proof-token {
-  flex: 0 0 auto;
-  width: 168px;
-  height: 64px;
-}
-.project-proof-caption {
-  font: 500 12.5px/1.4 var(--font-mono), monospace;
-  letter-spacing: 0.04em;
-  color: var(--ink-2);
-}
 
 /* ── Section: asymmetric two-column grid ──────────────────────────────
  *
@@ -1441,7 +1423,6 @@ body.dark .mob-sheet-panel {
   .project-section-title { font-size: 15px; }
   .meta { gap: 20px 32px; padding: 22px 0 24px; }
   .project-hero-banner-tagline { font-size: 15.5px; max-width: 100%; }
-  .project-proof { gap: 13px; margin-bottom: 28px; }
 }
 
 /* Prev/next pager — two big card links wrapping around the project list. */
@@ -1518,7 +1499,6 @@ body.dark .mob-sheet-panel {
 .project-animated .project-hero-banner-title,
 .project-animated .project-hero-banner-tagline,
 .project-animated .project-page-crumb,
-.project-animated .project-proof,
 .project-animated .meta > *,
 .project-animated .project-section-num,
 .project-animated .project-section-title,
@@ -1698,16 +1678,6 @@ body.dark .mob-sheet-panel {
   }
   .project-hero-banner-tagline { font-size: 15px; }
   .project-page-wrap { padding: 32px 20px 72px; }
-  .project-proof {
-    /* Stack the chrome token over its caption on phones so long status
-     * strings ("Live in the Shopify App Store") get full width to wrap. */
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-    margin-bottom: 26px;
-  }
-  .project-proof-token { width: 150px; height: 58px; }
-  .project-proof-caption { font-size: 11.5px; }
   .project-section { margin-top: 64px; row-gap: 18px; }
   .project-section:first-of-type { margin-top: 48px; }
   .project-section-header { gap: 12px; }

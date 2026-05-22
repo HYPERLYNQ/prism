@@ -48,7 +48,6 @@ const REVEAL_SELECTORS = [
   ".project-hero-banner-title",
   ".project-hero-banner-tagline",
   ".project-page-crumb",
-  ".project-proof",
   ".meta > *",
   ".project-section-num",
   ".project-section-title",
@@ -94,7 +93,6 @@ export default function ProjectAnimator({ routeKey, children }: ProjectAnimatorP
       gsap.set(".project-hero-banner-eyebrow", { y: 14 });
       gsap.set(".project-hero-banner-tagline", { y: 14 });
       gsap.set(".project-page-crumb", { y: 12 });
-      gsap.set(".project-proof", { y: 14 });
       gsap.set(".meta > *", { y: 14 });
       gsap.set(".project-section-num", { y: 40, scale: 0.92 });
       gsap.set(".project-section-title", { y: 18 });
@@ -123,7 +121,6 @@ export default function ProjectAnimator({ routeKey, children }: ProjectAnimatorP
           "-=0.7",
         )
         .to(".project-page-crumb", { y: 0, opacity: 1, duration: 0.7 }, "-=0.6")
-        .to(".project-proof", { y: 0, opacity: 1, duration: 0.7 }, "-=0.55")
         .to(".meta > *", { y: 0, opacity: 1, duration: 0.75, stagger: 0.07 }, "-=0.55");
 
       // ── Banner parallax — inner content drifts up as the page scrolls ──
