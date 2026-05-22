@@ -1140,12 +1140,39 @@ body.dark .mob-sheet-panel {
 /* Meta-grid card — year / role / built-with key-value pairs */
 /* Meta grid sits ABOVE the section two-column grid and spans the full
  * width of the project-page-wrap so it reads as the page's spec sheet. */
-/* Stacked, not a flat grid: the accent Status statement leads, then a quiet
- * row of supporting facts. Hierarchy keeps it from reading busy. */
+/* ── Status chip — proof point ────────────────────────────────────────
+ * Rounded pill (the shape that read best), de-clichéd: a static accent
+ * DIAMOND with a soft halo instead of the generic pulsing live-dot. No
+ * animation — the diamond reads as a spec/registration mark, not a status
+ * bubble. */
+.project-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  margin: 0 0 30px;
+  padding: 9px 17px 9px 14px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent) 42%, var(--hair));
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  font: 500 13px/1 var(--font-mono), monospace;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+}
+.project-status-mark {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  background: var(--accent);
+  transform: rotate(45deg); /* diamond, not a dot */
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent);
+}
+.project-status-label { white-space: nowrap; }
+
+/* Supporting facts (Year, Role) — quiet row beneath the chip. */
 .meta {
   display: flex;
-  flex-direction: column;
-  gap: 22px;
+  flex-wrap: wrap;
+  gap: 24px 48px;
   margin: 0;
   padding: 26px 0 30px;
   border-top: 1px solid var(--hair);
@@ -1159,19 +1186,6 @@ body.dark .mob-sheet-panel {
   margin-bottom: 7px;
 }
 .meta-val { font-size: 13px; color: var(--ink); }
-/* Status lead — the one element that pops: large, accent, the proof point. */
-.meta-lead-val {
-  font-size: 20px;
-  font-weight: 500;
-  letter-spacing: -0.01em;
-  color: var(--accent);
-}
-/* Supporting facts (Year, Role) — small + quiet beneath the lead. */
-.meta-facts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14px 48px;
-}
 
 /* Body paragraphs */
 .body p {
@@ -1511,6 +1525,7 @@ body.dark .mob-sheet-panel {
 .project-animated .project-hero-banner-title,
 .project-animated .project-hero-banner-tagline,
 .project-animated .project-page-crumb,
+.project-animated .project-status,
 .project-animated .meta > *,
 .project-animated .project-section-num,
 .project-animated .project-section-title,

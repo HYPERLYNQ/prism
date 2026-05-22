@@ -74,7 +74,7 @@ export default function ProjectBlobBanner({ slug: _slug }: ProjectBlobBannerProp
     // Mobile: cap pixel ratio at 1.5 (vs 2 on desktop) — halves the
     // fragment-shading load on high-DPR phone screens for a barely
     // perceptible quality difference at the banner's small size.
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1.5 : 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1.5 : 1.75));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.1;

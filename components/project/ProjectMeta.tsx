@@ -31,22 +31,21 @@ export default function ProjectMeta({ project, accent }: ProjectMetaProps) {
 
   return (
     <div className="project-body" style={accentStyle}>
-      {/* Meta — hierarchy over a flat grid: the Status leads as a large accent
-          statement (the proof point that pops), with Year / Role as a quiet
-          supporting line beneath. "Built with" is intentionally omitted here —
-          it's the dedicated "03 Stack" section below, so repeating it just adds
-          noise. */}
-      <div className="meta">
-        {project.status && (
-          <div className="meta-lead">
-            <div className="meta-key">Status</div>
-            <div className="meta-lead-val">{project.status}</div>
-          </div>
-        )}
-        <div className="meta-facts">
-          <MetaCell label="Year" value={project.year} />
-          <MetaCell label="Role" value={project.role} />
+      {/* Status chip — the proof point. A rounded pill (kept from the version
+          that read best) but de-clichéd: a static accent DIAMOND mark with a
+          soft halo instead of the generic pulsing "live dot". */}
+      {project.status && (
+        <div className="project-status" role="status">
+          <span className="project-status-mark" aria-hidden="true" />
+          <span className="project-status-label">{project.status}</span>
         </div>
+      )}
+
+      {/* Quiet supporting facts. "Built with" stays out — it's the 03 Stack
+          section below, so repeating it here just adds noise. */}
+      <div className="meta">
+        <MetaCell label="Year" value={project.year} />
+        <MetaCell label="Role" value={project.role} />
       </div>
 
       <Section number="01" title="Overview">
