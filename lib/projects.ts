@@ -35,11 +35,11 @@ export type Project = {
   /** Optional external link (live site / repo / writeup). */
   link?: { label: string; href: string };
   /**
-   * Optional one-line status badge (e.g. `"Live in the Shopify App Store"`,
-   * `"Open source · v1.7.6 on npm"`, `"Pre-release · v0.1.5"`, `"In active build"`).
-   *
-   * Surfaces honest, specific proof points without faking metrics. Renders as
-   * the first cell in the meta-grid on the project detail page.
+   * Short proof statement (e.g. `"Live in the App Store"`, `"Open source · v1.7.6"`,
+   * `"Pre-release · v0.1.5"`, `"In active build"`). Keep it punchy — it renders
+   * large + accent-coloured as the lead of the meta block on the detail page, so
+   * trailing detail ("· private repo", "on npm") just makes the headline wordy.
+   * Honest, specific proof — no faked metrics.
    */
   status?: string;
   /**
@@ -84,7 +84,7 @@ export const PROJECTS: Project[] = [
       "Vitest",
       "Node 22+",
     ],
-    status: "Open source · v1.7.6 on npm",
+    status: "Open source · v1.7.6",
     summary:
       "A memory layer for Claude Code: captures decisions, corrections, and project facts as structured records on disk and recalls the relevant ones at the start of a new session, so context isn't lost between conversations. Hybrid retrieval — BM25 keyword + semantic vector (sqlite-vec + Transformers.js running locally). Shipped as an MCP server, published to npm as @hyperlynq/synaptic, runs entirely local with zero cloud dependencies.",
     highlights: [
@@ -112,7 +112,7 @@ export const PROJECTS: Project[] = [
       "Prisma 6 + session storage",
       "Vite 6",
     ],
-    status: "Live in the Shopify App Store",
+    status: "Live · Shopify App Store",
     summary:
       "A multi-tenant B2B customer-approval and wholesale-pricing app for Shopify, live in the Shopify App Store. Merchants run tiered pricing, custom registration forms (license #, tax ID, business documents), and automated approval workflows. Shopify Functions in the extensions workspace enforce purchase restrictions and apply wholesale discounts server-side, so unapproved customers can't reach checkout. Built on the Shopify App React Router framework with Prisma session storage. Marketing site at wholesaleharmony.com — App Store listing has a product video + screenshots.",
     highlights: [
@@ -142,7 +142,7 @@ export const PROJECTS: Project[] = [
       "Smartlead",
       "SQLite",
     ],
-    status: "In active build · private repo",
+    status: "In active build",
     summary:
       "Pings public channels — App Store reviews, Reddit, Shopify Community, job boards — for high-intent signals, classifies leads with a Sonnet-4.6 classifier (tool-use + structured output + prompt caching), finds contacts, drafts personalised outreach, routes each draft through a Telegram human-approval gate, and sends accepted ones via Smartlead with webhook reply tracking. End-to-end pipeline running unattended; humans only see the approval queue.",
     highlights: [
@@ -170,7 +170,7 @@ export const PROJECTS: Project[] = [
       "Recharts",
       "Tailwind v4",
     ],
-    status: "In active build · private repo",
+    status: "In active build",
     summary:
       "A SaaS for YouTube / Instagram / TikTok creators that scores content for virality and surfaces emerging trends. Uses the Claude API for content-DNA scoring against algorithm gates (hook, payoff, retention shape) and visualises portfolio-level momentum across channels. Pulls live YouTube data via googleapis. Next.js 16 dashboard with workspace + multi-channel support, NextAuth + Prisma adapter, and a Recharts-based analytics layer.",
     highlights: [
@@ -228,7 +228,7 @@ export const PROJECTS: Project[] = [
       "Stripe",
       "React 19 + Vite + TypeScript",
     ],
-    status: "In active build · private repo",
+    status: "In active build",
     summary:
       "An NBA betting-intelligence SaaS. Backend is FastAPI + async SQLAlchemy on Postgres, with Celery workers running on Redis to ingest live game data via nba_api and to retrain prediction models (XGBoost + LightGBM) on a schedule. Surfaces line shopping across sportsbooks, bankroll + bet-history tracking, and live scores tied to open positions. React 19 + Vite frontend with TanStack Query and Recharts. Stripe-billed.",
     highlights: [
