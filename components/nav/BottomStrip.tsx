@@ -61,8 +61,13 @@ export default function BottomStrip({ activeSlug }: BottomStripProps) {
         <Link href="/blog" className="strip-writing-link">writing</Link>
       </div>
       <div className="strip-r">
+        {/* Resume + GitHub + email — the recruiter-conversion shortcut. The
+            mailto subject is pre-filled so a click opens a sensible draft (no
+            blank-subject friction). Swap for a Calendly URL here if/when one
+            is configured. */}
+        <Link href="/resume">resume →</Link>
         <a href={OWNER_GITHUB} target="_blank" rel="noopener noreferrer">github ↗</a>
-        <a href={`mailto:${OWNER_EMAIL}`}>email ↗</a>
+        <a href={`mailto:${OWNER_EMAIL}?subject=${encodeURIComponent("Re: mikevidal.dev — let's talk")}`}>email ↗</a>
         <span className="sep">·</span>
         <span className="loc">Miami · remote-first</span>
       </div>

@@ -42,11 +42,26 @@ export default function ProjectMeta({ project, accent }: ProjectMetaProps) {
       )}
 
       {/* Quiet supporting facts. "Built with" stays out — it's the 03 Stack
-          section below, so repeating it here just adds noise. */}
+          section below, so repeating it here just adds noise. A `Code` cell
+          surfaces visibility (open-source vs private repo) — honest signal,
+          never apologetic; private repos are normal for commercial SaaS. */}
       <div className="meta">
         <MetaCell label="Year" value={project.year} />
         <MetaCell label="Role" value={project.role} />
+        {project.visibility && (
+          <MetaCell
+            label="Code"
+            value={project.visibility === "open-source" ? "Open source" : "Private · closed-source"}
+          />
+        )}
       </div>
+
+      {/* Lede — one-line "key engineering decision" pulled up so a recruiter
+          gets the strongest technical signal in a 60-second skim, without
+          having to read the full summary paragraph. */}
+      {project.lede && (
+        <p className="project-lede">{project.lede}</p>
+      )}
 
       <Section number="01" title="Overview">
         <div className="body body-editorial">

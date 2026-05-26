@@ -6,6 +6,7 @@ import { creativeWorkSchema } from "@/lib/jsonLd";
 import ProjectAnimator from "@/components/project/ProjectAnimator";
 import ProjectTopbar from "@/components/project/ProjectTopbar";
 import ProjectHeroBanner from "@/components/project/ProjectHeroBanner";
+import ProjectDemo from "@/components/project/ProjectDemo";
 import ProjectMeta from "@/components/project/ProjectMeta";
 import ProjectPrevNext from "@/components/project/ProjectPrevNext";
 import BottomStrip from "@/components/nav/BottomStrip";
@@ -101,6 +102,10 @@ export default async function ProjectPage({ params }: { params: Promise<RoutePar
             <span aria-hidden="true">&nbsp;/&nbsp;</span>
             <span>{project.slug}</span>
           </div>
+
+          {/* Demo embed — highest-leverage proof for in-build/private projects.
+              Renders nothing until a `demo` field lands on the project. */}
+          <ProjectDemo demo={project.demo} accent={accent} />
 
           <ProjectMeta project={project} accent={accent} />
 

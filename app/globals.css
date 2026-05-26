@@ -1326,6 +1326,63 @@ body.dark .mob-sheet-panel {
 }
 .meta-val { font-size: 13px; color: var(--ink); }
 
+/* Demo embed — sits between the breadcrumb and the meta block on the case
+ * study. Responsive 16:9 frame; the Loom iframe, MP4, or GIF fills it. A
+ * subtle accent-tinted edge ties it to the project's brand colour. */
+.project-demo {
+  margin: 12px 0 28px;
+}
+.project-demo-frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--hair);
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--accent) 35%, transparent),
+    0 24px 60px rgba(0, 0, 0, 0.08);
+  background: var(--bg-deep, #0e1116);
+}
+.project-demo-frame > iframe,
+.project-demo-frame > video,
+.project-demo-frame > img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  object-fit: cover;
+  display: block;
+}
+
+/* Lede — the "key engineering decision" pulled above the highlights. Larger
+ * and quieter than body copy so it lands as the case study's *thesis* in a
+ * fast skim, not a paragraph. Editorial top "lead rule" in the project accent
+ * (not a side stripe, which would be the banned pattern). */
+.project-lede {
+  margin: 28px 0 0;
+  font-family: var(--font-grotesk), sans-serif;
+  font-weight: 500;
+  font-size: 17.5px;
+  line-height: 1.45;
+  letter-spacing: -0.005em;
+  color: var(--ink);
+  max-width: 60ch;
+}
+.project-lede::before {
+  content: "";
+  display: block;
+  width: 32px;
+  height: 2px;
+  background: var(--accent, var(--ink-3));
+  margin-bottom: 14px;
+}
+@media (max-width: 600px) {
+  .project-lede { font-size: 15.5px; }
+  .project-lede::before { width: 26px; margin-bottom: 11px; }
+}
+
 /* Body paragraphs */
 .body p {
   font-size: 14.5px;
@@ -2074,3 +2131,218 @@ body.dark .mob-sheet-panel {
 }
 .notfound-links a:hover { border-bottom-color: var(--ink); }
 .notfound-sep { color: var(--hair); padding-block: 10px; }
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * /resume — auto-generated resume page. Single source of truth (lib/projects),
+ * readable on the web, ⌘P saves a clean PDF via the @media print rules below.
+ *
+ * Type system matches the project pages (grotesk for body, mono for chrome /
+ * labels). Print rules strip background tint, hide back link + print button,
+ * and tighten margins for letter / A4.
+ * ──────────────────────────────────────────────────────────────────────── */
+.resume {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 48px 32px 96px;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-grotesk), sans-serif;
+}
+.resume-back {
+  display: inline-block;
+  font: 500 11px/1 var(--font-mono), monospace;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  text-decoration: none;
+  margin-bottom: 36px;
+  transition: color 0.15s;
+}
+.resume-back:hover { color: var(--ink); }
+
+.resume-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px 32px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--hair);
+}
+.resume-name {
+  font-family: var(--font-grotesk), sans-serif;
+  font-weight: 700;
+  font-size: clamp(32px, 5vw, 44px);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  margin: 0 0 8px;
+}
+.resume-role {
+  font: 500 13px/1.3 var(--font-mono), monospace;
+  letter-spacing: 0.04em;
+  color: var(--ink-2);
+  margin: 0;
+}
+.resume-header-r {
+  font: 500 12px/1.6 var(--font-mono), monospace;
+  letter-spacing: 0.02em;
+  color: var(--ink-2);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  align-items: center;
+}
+.resume-header-r a { color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--hair); transition: border-color 0.15s; }
+.resume-header-r a:hover { border-bottom-color: var(--ink); }
+.resume-dot { color: var(--ink-3); }
+
+.resume-print {
+  margin: 24px 0 0;
+  font: 500 10px/1 var(--font-mono), monospace;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--hair);
+  border-radius: 999px;
+  padding: 10px 14px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  transition: border-color 0.15s, background 0.15s;
+}
+.resume-print:hover { border-color: var(--ink-3); background: color-mix(in srgb, var(--ink) 3%, transparent); }
+.resume-print-kbd {
+  font: 500 10px/1 var(--font-mono), monospace;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+  padding-left: 10px;
+  border-left: 1px solid var(--hair);
+}
+
+.resume-section { margin-top: 48px; }
+.resume-h2 {
+  font: 700 10px/1 var(--font-mono), monospace;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin: 0 0 22px;
+}
+.resume-summary {
+  font-family: var(--font-grotesk), sans-serif;
+  font-weight: 500;
+  font-size: 18px;
+  line-height: 1.5;
+  letter-spacing: -0.005em;
+  color: var(--ink);
+  max-width: 64ch;
+  margin: 0;
+}
+
+.resume-projects { list-style: none; padding: 0; margin: 0; }
+.resume-project { padding: 28px 0; border-top: 1px solid var(--hair); }
+.resume-project:first-child { border-top: 0; padding-top: 0; }
+
+.resume-project-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.resume-project-name {
+  font-family: var(--font-grotesk), sans-serif;
+  font-weight: 700;
+  font-size: 22px;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+.resume-project-name a {
+  color: var(--ink);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.15s;
+}
+.resume-project-name a:hover { border-bottom-color: var(--ink-3); }
+.resume-project-meta {
+  font: 500 11px/1 var(--font-mono), monospace;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.resume-project-status {
+  margin: 8px 0 0;
+  font: 500 10.5px/1 var(--font-mono), monospace;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+.resume-project-lede {
+  margin: 14px 0 0;
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: var(--ink);
+  font-weight: 500;
+}
+.resume-project-tag {
+  margin: 8px 0 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ink-2);
+  max-width: 70ch;
+}
+.resume-project-bullets {
+  margin: 12px 0 0;
+  padding-left: 18px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+.resume-project-bullets li { margin-top: 4px; }
+.resume-project-bullets li:first-child { margin-top: 0; }
+.resume-project-stack {
+  margin: 12px 0 0;
+  font: 500 11px/1.5 var(--font-mono), monospace;
+  letter-spacing: 0.02em;
+  color: var(--ink-3);
+}
+.resume-project-stack-label { color: var(--ink-2); letter-spacing: 0.12em; text-transform: uppercase; }
+
+.resume-skills {
+  font: 500 12px/1.7 var(--font-mono), monospace;
+  letter-spacing: 0.02em;
+  color: var(--ink-2);
+  margin: 0;
+}
+.resume-writing { font-size: 14.5px; color: var(--ink-2); margin: 0; }
+.resume-writing a { color: var(--ink); }
+
+/* ── Print: tuned for letter / A4 / standard browser "Save as PDF". ─────── */
+@media print {
+  /* Hard-set whites so the warm bg doesn't tint a printed PDF; remove the
+     dot-grid and other backgrounds that show up oddly on paper. */
+  html, body { background: #ffffff !important; }
+  .resume { padding: 0; max-width: none; background: #ffffff; }
+  .resume-back,
+  .resume-print { display: none !important; }
+
+  /* Tighter rhythm for print pages. */
+  .resume-section { margin-top: 28px; page-break-inside: avoid; }
+  .resume-project { padding: 18px 0; page-break-inside: avoid; }
+  .resume-project-lede,
+  .resume-project-tag,
+  .resume-project-bullets,
+  .resume-project-stack { color: #222; }
+  .resume-header-r a,
+  .resume-project-name a,
+  .resume-writing a {
+    color: #000;
+    border-bottom: 0;
+  }
+
+  /* Standard print margins. */
+  @page { margin: 16mm 16mm 18mm; }
+}

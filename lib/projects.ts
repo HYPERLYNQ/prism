@@ -14,6 +14,18 @@
 
 import { SWATCHES, type Swatch } from "./looks";
 
+/**
+ * A visual demo embedded on the case study — proof the product actually works.
+ * Recruiters spend 30–60 seconds per portfolio; a short loop is the highest-
+ * leverage credibility signal for in-build/private projects (no GitHub link
+ * needed). Drop the embed id / src in once recorded; the field is optional and
+ * the demo slot renders nothing until a value is present.
+ */
+export type ProjectDemo =
+  | { kind: "loom"; id: string; alt?: string }
+  | { kind: "video"; src: string; poster?: string; alt?: string }
+  | { kind: "image"; src: string; alt: string };
+
 /** One project. Keep the field set minimal; new fields here ripple through every consumer. */
 export type Project = {
   /** URL slug under `/work/<slug>` — kebab-case, no spaces. */
@@ -50,6 +62,24 @@ export type Project = {
    * synaptic = chartreuse) don't drift if `PROJECTS` is reordered.
    */
   accent: string;
+  /**
+   * Optional short demo embedded above the case-study body. Loom screencast,
+   * MP4, or static image / GIF. See ProjectDemo. Render slot stays empty until
+   * a value lands here.
+   */
+  demo?: ProjectDemo;
+  /**
+   * One-line "the engineering call I'd talk about in interview." Pulled out
+   * above the highlights so the strongest technical decision lands in a
+   * 60-second skim, not buried in the summary paragraph.
+   */
+  lede?: string;
+  /**
+   * Source visibility — drives the "Code" cell in the project meta grid and
+   * the visibility tags on the /resume page. Honest, never apologetic; private
+   * repos are normal for commercial SaaS.
+   */
+  visibility?: "open-source" | "private";
 };
 
 /**
@@ -85,6 +115,9 @@ export const PROJECTS: Project[] = [
       "Node 22+",
     ],
     status: "Open source · v1.7.6",
+    visibility: "open-source",
+    lede:
+      "Hybrid retrieval entirely on-device — BM25 + semantic vectors via sqlite-vec and Transformers.js, zero cloud dependencies.",
     summary:
       "A memory layer for Claude Code: captures decisions, corrections, and project facts as structured records on disk and recalls the relevant ones at the start of a new session, so context isn't lost between conversations. Hybrid retrieval — BM25 keyword + semantic vector (sqlite-vec + Transformers.js running locally). Shipped as an MCP server, published to npm as @hyperlynq/synaptic, runs entirely local with zero cloud dependencies.",
     highlights: [
@@ -113,6 +146,9 @@ export const PROJECTS: Project[] = [
       "Vite 6",
     ],
     status: "Live · Shopify App Store",
+    visibility: "private",
+    lede:
+      "Shopify Functions enforce purchase restrictions server-side, so unapproved customers can't reach checkout — platform-level, not client-side.",
     summary:
       "A multi-tenant B2B customer-approval and wholesale-pricing app for Shopify, live in the Shopify App Store. Merchants run tiered pricing, custom registration forms (license #, tax ID, business documents), and automated approval workflows. Shopify Functions in the extensions workspace enforce purchase restrictions and apply wholesale discounts server-side, so unapproved customers can't reach checkout. Built on the Shopify App React Router framework with Prisma session storage. Marketing site at wholesaleharmony.com — App Store listing has a product video + screenshots.",
     highlights: [
@@ -143,6 +179,9 @@ export const PROJECTS: Project[] = [
       "SQLite",
     ],
     status: "In active build",
+    visibility: "private",
+    lede:
+      "One Sonnet-4.6 classifier with tool-use, structured output, and prompt caching — not a multi-agent system. Human approval via Telegram before any email ships.",
     summary:
       "Pings public channels — App Store reviews, Reddit, Shopify Community, job boards — for high-intent signals, classifies leads with a Sonnet-4.6 classifier (tool-use + structured output + prompt caching), finds contacts, drafts personalised outreach, routes each draft through a Telegram human-approval gate, and sends accepted ones via Smartlead with webhook reply tracking. End-to-end pipeline running unattended; humans only see the approval queue.",
     highlights: [
@@ -171,6 +210,9 @@ export const PROJECTS: Project[] = [
       "Tailwind v4",
     ],
     status: "In active build",
+    visibility: "private",
+    lede:
+      "Claude-API virality scoring against algorithm-gate heuristics (hook, payoff, retention shape) — content scored for break-out before it pops, not after.",
     summary:
       "A SaaS for YouTube / Instagram / TikTok creators that scores content for virality and surfaces emerging trends. Uses the Claude API for content-DNA scoring against algorithm gates (hook, payoff, retention shape) and visualises portfolio-level momentum across channels. Pulls live YouTube data via googleapis. Next.js 16 dashboard with workspace + multi-channel support, NextAuth + Prisma adapter, and a Recharts-based analytics layer.",
     highlights: [
@@ -200,6 +242,9 @@ export const PROJECTS: Project[] = [
       "OS keychain (keyring)",
     ],
     status: "Pre-release · v0.1.5",
+    visibility: "private",
+    lede:
+      "Tauri 2 + Rust instead of Electron — ~10× smaller binary, native silent print to the thermal printer, OS-keychain credentials. Every label purchase gated behind explicit user confirmation.",
     summary:
       "A native desktop shipping tool for the solo shipper who buys and prints 50+ labels a day and wants a purpose-built UI instead of Shippo's web dashboard. Tauri 2 + Rust client with a React 19 frontend. Paste an address → regex parse → verify via Shippo → rate-shop → buy → silent print to the default 4×6 thermal printer. Customs forms appear automatically for international destinations. API credentials live in the OS keychain, never in plaintext, and every billable label purchase is gated behind explicit user confirmation.",
     highlights: [
@@ -229,6 +274,9 @@ export const PROJECTS: Project[] = [
       "React 19 + Vite + TypeScript",
     ],
     status: "In active build",
+    visibility: "private",
+    lede:
+      "XGBoost + LightGBM + scikit-learn retrained on schedule via Celery + Redis. Multi-sportsbook odds aggregation for line shopping; bankroll tracking tied to live game state.",
     summary:
       "An NBA betting-intelligence SaaS. Backend is FastAPI + async SQLAlchemy on Postgres, with Celery workers running on Redis to ingest live game data via nba_api and to retrain prediction models (XGBoost + LightGBM) on a schedule. Surfaces line shopping across sportsbooks, bankroll + bet-history tracking, and live scores tied to open positions. React 19 + Vite frontend with TanStack Query and Recharts. Stripe-billed.",
     highlights: [
