@@ -87,18 +87,18 @@ export default function HeroOverlay(props: HeroOverlayProps) {
           </div>
           {/* Credential block — concrete shipped proof paired with availability so
               the whole "hire-me" case sits in one corner, clear of the cycling
-              wordmark and debris. Type matches the overlay system: a mono tracked
-              label (like the role/status), grotesk value rows (like project names),
-              a mono sub-line. The two top rows link to the relevant case studies. */}
+              wordmark and debris. One monospace voice (matching the status above
+              and the rest of the hero chrome) for cohesion: a hairline divider,
+              then lowercase rows. The two link rows go to the relevant case
+              studies; "in production" is a static statement. */}
           <div className="hero-cred">
-            <span className="hero-cred-k">Shipped</span>
             <Link className="hero-cred-row" href="/work/wholesale-harmony">
-              Shopify App Store <span className="hero-cred-arr" aria-hidden="true">→</span>
+              live on the shopify app store <span className="hero-cred-arr" aria-hidden="true">↗</span>
             </Link>
             <Link className="hero-cred-row" href="/work/synaptic">
-              open source · npm <span className="hero-cred-arr" aria-hidden="true">→</span>
+              open-source tool on npm <span className="hero-cred-arr" aria-hidden="true">↗</span>
             </Link>
-            <span className="hero-cred-sub">in production</span>
+            <span className="hero-cred-row is-static">apps running in production</span>
           </div>
         </div>
 
