@@ -91,21 +91,36 @@ export default function HeroOverlay(props: HeroOverlayProps) {
               and the rest of the hero chrome) for cohesion: a hairline divider,
               then lowercase rows. The two link rows go to the relevant case
               studies; "in production" is a static statement. */}
+          {/* Credential rows link OUT to the real listings the `↗` arrow implies
+              (App Store page, npm package). The trailing `→` internal link goes
+              to /work for the full project picture. The two external URLs live
+              in `lib/projects.ts` (wholesale-harmony) and the synaptic project
+              summary (`@hyperlynq/synaptic` published to npm). */}
           <div className="hero-cred">
-            <Link className="hero-cred-row" href="/work/wholesale-harmony">
+            <a
+              className="hero-cred-row"
+              href="https://apps.shopify.com/wholesale-harmony"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               <span className="hero-cred-name">wholesale-harmony</span>
               <span className="hero-cred-sep" aria-hidden="true">·</span>
               <span className="hero-cred-venue">shopify app store</span>
               <span className="hero-cred-arr" aria-hidden="true">↗</span>
-            </Link>
-            <Link className="hero-cred-row" href="/work/synaptic">
+            </a>
+            <a
+              className="hero-cred-row"
+              href="https://www.npmjs.com/package/@hyperlynq/synaptic"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               <span className="hero-cred-name">synaptic</span>
               <span className="hero-cred-sep" aria-hidden="true">·</span>
               <span className="hero-cred-venue">
                 npm <span className="hero-cred-ver">v1.7.6</span>
               </span>
               <span className="hero-cred-arr" aria-hidden="true">↗</span>
-            </Link>
+            </a>
             <Link className="hero-cred-more" href="/work">
               + 4 in active build <span className="hero-cred-sep" aria-hidden="true">·</span> see all{" "}
               <span aria-hidden="true">→</span>
