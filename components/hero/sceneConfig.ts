@@ -110,8 +110,12 @@ export const MAX_DT = 0.05;
  * here; the host reads these constants directly and doesn't carry any of the
  * old fade-out / fade-in numbers.
  */
-/** Seconds a phrase is held fully shown before it begins to dissolve. */
-export const PHASE_IDLE_DUR = 4.4;
+/** Seconds a phrase is held fully shown before it begins to dissolve. Raised
+ *  4.4 → 6.0: the dissolve/travel/reform transition spends ~2.9s as formless
+ *  particles, so a longer legible dwell tips the ratio toward "readable text"
+ *  (was ~60% readable, now ~67%) — comprehension shouldn't hinge on catching
+ *  the brief solid window. */
+export const PHASE_IDLE_DUR = 6.0;
 /** Seconds the letters fade out while particles explode outward from them. */
 export const PHASE_DISSOLVE_DUR = 0.75;
 /** Seconds the particle swarm drifts before the next phrase's targets are

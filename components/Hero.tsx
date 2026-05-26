@@ -43,11 +43,19 @@ export default function Hero() {
   const [ready, setReady] = useState(false);
   /** First cursor move detected → fades the hint out. */
   const [moved, setMoved] = useState(false);
+  /** WebGL unavailable / failed to init → swap the canvas for a DOM fallback. */
+  const [webglFailed, setWebglFailed] = useState(false);
 
   /* ── set up the scene once on mount; the React layer pushes updates via apiRef ── */
   const handleReady = useCallback(() => setReady(true), []);
   const handleFirstMove = useCallback(() => setMoved(true), []);
-  useHeroScene(canvasRef, apiRef, handleReady, handleFirstMove);
+  // On WebGL failure: reveal the overlay (the loader would otherwise hang on
+  // "initializing") and flag the fallback so the value-prop still lands.
+  const handleError = useCallback(() => {
+    setWebglFailed(true);
+    setReady(true);
+  }, []);
+  useHeroScene(canvasRef, apiRef, handleReady, handleFirstMove, handleError);
 
   /* ── outside-click closes the look panel ── */
   useEffect(() => {
@@ -82,7 +90,7 @@ export default function Hero() {
   const bgHex = SWATCHES.find((s) => s.name === bgColorName)?.hex ?? "#FFFFFF";
 
   return (
-    <div className="hero-root">
+    <div className={`hero-root${webglFailed ? " webgl-failed" : ""}`}>
       <h1 className="sr-only">Mike Vidal — AI Engineer</h1>
       {/* Crawlable description — the hero's value-prop phrases are WebGL geometry,
           not DOM text, so without this the home page has almost no indexable copy.
@@ -94,6 +102,16 @@ export default function Hero() {
         products rather than demos.
       </p>
       <canvas ref={canvasRef} className="hero-canvas" />
+      {/* Visual fallback when WebGL can't init — the 3D wordmark carries the
+          value-prop, so without the canvas we paint it as plain type instead of
+          leaving a blank stage. (The sr-only copy above covers SEO / a11y.) */}
+      {webglFailed && (
+        <div className="hero-fallback" aria-hidden="true">
+          <p className="hero-fallback-line">
+            Applied AI,<br />shipped to production.
+          </p>
+        </div>
+      )}
       <HeroOverlay
         topLeftRef={topLeftRef}
         ready={ready}

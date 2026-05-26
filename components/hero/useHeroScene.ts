@@ -76,6 +76,7 @@ export function useHeroScene(
   apiRef: RefObject<SceneApi | null>,
   onReady: () => void,
   onFirstMove: () => void,
+  onError: () => void,
 ): void {
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -102,12 +103,22 @@ export function useHeroScene(
      */
     let mouseAmp = MOUSE_AMP * (baseZ / BASE_Z);
 
-    const renderer = new THREE.WebGLRenderer({
-      canvas,
-      alpha: true,
-      antialias: window.innerWidth < 1920,
-      powerPreference: "high-performance",
-    });
+    // WebGL can be unavailable (locked-down browsers, blocklisted GPUs, software
+    // rendering disabled). The renderer constructor throws when it can't acquire
+    // a context — catch it and signal the React layer to show a DOM fallback
+    // hero instead of leaving a blank canvas as the first impression.
+    let renderer: THREE.WebGLRenderer;
+    try {
+      renderer = new THREE.WebGLRenderer({
+        canvas,
+        alpha: true,
+        antialias: window.innerWidth < 1920,
+        powerPreference: "high-performance",
+      });
+    } catch {
+      onError();
+      return;
+    }
     // Cap device pixel ratio. Desktop: 1.75 (not 2) — on high-DPI displays a 2×
     // cap renders ~30% more pixels every frame for a barely-perceptible sharpness
     // gain; 1.75 keeps the chrome crisp while easing GPU fill-rate / heat.

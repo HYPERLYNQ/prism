@@ -113,6 +113,29 @@ body {
   z-index: 1;
 }
 
+/* WebGL-failure fallback — the canvas is hidden and a typographic value-prop
+ * takes its place so the page still communicates without the 3D scene. */
+.webgl-failed .hero-canvas { display: none; }
+.hero-fallback {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  padding: 0 8vw;
+  pointer-events: none;
+}
+.hero-fallback-line {
+  font-family: var(--font-grotesk), sans-serif;
+  font-weight: 700;
+  font-size: clamp(40px, 8vw, 104px);
+  line-height: 1.02;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+  margin: 0;
+  text-align: center;
+}
+
 /* ─────────────────────────────────────────────────────────────────────────
  * 4. Hero overlay — corners + bottom strip + staggered fade-in
  * ──────────────────────────────────────────────────────────────────────── */
@@ -229,6 +252,20 @@ body {
   color: var(--ink);
   font-weight: 500;
 }
+/* Persistent proof line under the blurb — plain-language credibility that
+ * doesn't depend on reading the cycling WebGL wordmark. Mono + uppercase so it
+ * reads as a credential strip, not body copy. */
+.hero-proof {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  font: 500 9.5px/1.4 var(--font-mono), monospace;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.hero-proof-sep { color: var(--hair); }
 
 /* Bottom strip — WORK label + project links on the left, contact + location on
  * the right. Background spans the full viewport (the gradient veil should
@@ -415,8 +452,12 @@ body {
     visibility 0s linear 0.22s;
 }
 body.dark .lookpanel {
-  background: color-mix(in srgb, var(--bg) 60%, white 4%);
-  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.4);
+  /* Solidly dark in dark mode (was 60% bg + 4% white → too translucent over the
+     dark scene, the panel read as a light smudge). Near-opaque dark surface with
+     a faint lift so it sits as a real panel. */
+  background: color-mix(in srgb, var(--bg) 92%, white 6%);
+  border-color: var(--hair);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
 }
 .lookpanel.open {
   opacity: 1;
@@ -797,10 +838,10 @@ body.dark .mob-sheet-panel {
   text-decoration: none;
   color: var(--ink);
   min-height: 56px;
-  transition: padding-left 0.18s ease, background 0.15s;
+  transition: transform 0.18s ease, background 0.15s;
 }
 .mob-sheet-link:active {
-  padding-left: 18px;
+  transform: translateX(8px);
   background: color-mix(in srgb, var(--accent, var(--ink)) 8%, transparent);
 }
 .mob-sheet-num {
@@ -953,6 +994,9 @@ body.dark .mob-sheet-panel {
     bottom: 130px;
     font-size: 10.5px;
   }
+  /* Proof line hidden on small phones — the bottom-left zone is tight above the
+     mobile bar and the blurb already carries the message there. */
+  .hero-proof { display: none; }
 
   /* Bottom strip: edge-to-edge with tighter padding. */
   .strip { padding: 10px 18px 12px; }
@@ -1069,20 +1113,24 @@ body.dark .mob-sheet-panel {
 .project-hero-banner {
   position: relative;
   background: linear-gradient(135deg, var(--banner-accent) 0%, var(--banner-accent-deep) 100%);
-  /* Banner text is ALWAYS white, regardless of accent lightness — looks
-   * cohesive across the project set instead of some banners reading dark-on-
-   * light and others light-on-dark. Light accents like gold-leaf still hold
-   * up because the gradient ramps to `--banner-accent-deep` (much darker),
-   * and the title is large-bold display type so it clears the WCAG AA
-   * large-text threshold (3:1) on every accent in the palette.
-   *
-   * No `!important` needed: `.project-hero-banner` (line ~1001) declares its
-   * own color AFTER `.project-page { color: var(--ink) }` (line ~959) in the
-   * source, and inheritance through the banner subtree picks white up
-   * naturally. */
-  color: #ffffff;
+  /* Banner text colour follows the accent's lightness (the `.is-dark` modifier
+   * is added by ProjectHeroBanner when `accent.dark`). White text "always" read
+   * as a cohesive set but FAILED WCAG AA on the light accents: measured white-
+   * on-accent was chartreuse 2.59:1, gold-leaf 2.55:1, burnt-orange 3.45:1 — all
+   * under the 4.5:1 the 17px tagline needs (and chartreuse/gold-leaf under even
+   * the 3:1 large-text floor for the title). So:
+   *   • light accents (chartreuse, burnt-orange, gold-leaf) → dark ink text
+   *     (ink-on-chartreuse measures ~7:1; reads as deliberate editorial colour)
+   *   • dark accents (deep-teal, oxblood, aubergine, via `.is-dark`) → white,
+   *     which clears AA on all three. */
+  color: #0A0E14;
   overflow: hidden;
   isolation: isolate; /* stacks the mesh's blend-modes below the title */
+}
+/* Dark accents (deep-teal, oxblood, aubergine) — white text clears AA on all
+ * three (4.85 / 6.61 / 9.23:1). Added by ProjectHeroBanner via `accent.dark`. */
+.project-hero-banner.is-dark {
+  color: #ffffff;
 }
 /* Banner content shares the same wrap width AND horizontal padding as
  * `.project-page-wrap` (1080px max / 36px gutters) so the title's left edge
@@ -1689,15 +1737,17 @@ body.dark .mob-sheet-panel {
   display: block;
   padding: 22px 4px 22px 6px;
   border-bottom: 1px solid var(--hair);
-  border-left: 3px solid transparent;
   text-decoration: none;
   color: var(--ink);
-  transition: padding-left 0.18s ease, border-color 0.18s, background 0.18s;
+  /* Hover affordance is a transform slide + per-project accent wash. (Was a
+     3px accent `border-left` side-stripe + animated `padding-left` — the stripe
+     is a banned pattern and animating padding thrashes layout; transform is
+     GPU-composited and the wash carries the accent without a stripe.) */
+  transition: transform 0.18s ease, background 0.18s;
 }
 .work-index-item:hover {
-  padding-left: 18px;
-  border-left-color: var(--accent, var(--ink-3));
-  background: color-mix(in srgb, var(--ink) 3%, transparent);
+  transform: translateX(8px);
+  background: color-mix(in srgb, var(--accent, var(--ink)) 7%, transparent);
 }
 .work-index-item-top {
   display: flex;
@@ -1746,15 +1796,15 @@ body.dark .mob-sheet-panel {
   display: block;
   padding: 24px 4px 24px 6px;
   border-bottom: 1px solid var(--hair);
-  border-left: 3px solid transparent;
   text-decoration: none;
   color: var(--ink);
-  transition: padding-left 0.18s ease, border-color 0.18s, background 0.18s;
+  /* Same rewrite as `.work-index-item`: transform slide + tint, no side-stripe,
+     no layout-animating padding. */
+  transition: transform 0.18s ease, background 0.18s;
 }
 .blog-item:hover {
-  padding-left: 18px;
-  border-left-color: var(--ink-3);
-  background: color-mix(in srgb, var(--ink) 3%, transparent);
+  transform: translateX(8px);
+  background: color-mix(in srgb, var(--ink) 4%, transparent);
 }
 .blog-item-top {
   display: flex;
@@ -1808,6 +1858,10 @@ body.dark .mob-sheet-panel {
 /* The MDX body. Generous measure + rhythm; matches the editorial body type. */
 .blog-prose {
   max-width: 68ch;
+  /* Grotesk for long-form body — matches the project-page reading decision.
+     Mono is the least readable face for paragraphs; `code`/`pre` below keep
+     mono explicitly so inline code + blocks still read as code. */
+  font-family: var(--font-grotesk), sans-serif;
   font-size: 16.5px;
   line-height: 1.72;
   color: var(--ink-2);
@@ -1922,3 +1976,74 @@ body.dark .mob-sheet-panel {
   .project-section-num { font-size: 34px; }
   .meta { gap: 16px 24px; padding: 20px 0 22px; }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Touch targets (audit P2) — several interactive elements measured 13–33px
+ * tall on mobile. On coarse-pointer devices, grow the hit area to a comfortable
+ * tap size. `padding-block` enlarges the clickable region for hit-testing; where
+ * it can't shift layout (inline links) it still widens the tappable strip, and
+ * on flex/grid buttons `min-height` guarantees the 44px target.
+ * ──────────────────────────────────────────────────────────────────────── */
+@media (pointer: coarse) {
+  .page-topbar-home { padding-block: 14px; }
+  .project-cta { min-height: 44px; }
+  .project-pager-link { min-height: 44px; }
+  .mob-sheet-close { width: 44px; height: 44px; }
+  .mob-sheet-foot-links a { display: inline-block; padding-block: 10px; }
+  .blog-item-tags,
+  .work-index-item-meta { line-height: 1.7; }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * 404 — custom not-found page (on-brand editorial)
+ * ──────────────────────────────────────────────────────────────────────── */
+.notfound {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 48px 24px calc(48px + env(safe-area-inset-bottom, 0));
+  background: var(--bg);
+}
+.notfound-inner { max-width: 640px; }
+.notfound-code {
+  font: 500 11px/1 var(--font-mono), monospace;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin: 0 0 18px;
+}
+.notfound-title {
+  font-family: var(--font-grotesk), sans-serif;
+  font-weight: 700;
+  font-size: clamp(34px, 7vw, 64px);
+  line-height: 1.02;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+  margin: 0;
+}
+.notfound-sub {
+  font-family: var(--font-grotesk), sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--ink-2);
+  margin: 18px 0 0;
+  max-width: 48ch;
+}
+.notfound-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 32px;
+  font: 500 11px/1 var(--font-mono), monospace;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.notfound-links a {
+  color: var(--ink);
+  text-decoration: none;
+  padding-block: 10px;
+  border-bottom: 1px solid var(--ink-3);
+  transition: border-color 0.18s;
+}
+.notfound-links a:hover { border-bottom-color: var(--ink); }
+.notfound-sep { color: var(--hair); padding-block: 10px; }

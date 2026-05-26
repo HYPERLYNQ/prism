@@ -91,6 +91,17 @@ export default function HeroOverlay(props: HeroOverlayProps) {
             <b>Builds applied AI end-to-end</b> — outreach pipelines, persistent memory for Claude
             Code, virality intelligence, shipping desktops. Solo, production-grade.
           </p>
+          {/* Persistent, always-legible proof line. The hero's value-prop is
+              WebGL geometry that cycles through a dissolve, so credibility
+              shouldn't depend on reading the animation — these are concrete,
+              shipped facts in plain DOM text. */}
+          <p className="hero-proof">
+            <span>Live: Shopify App Store</span>
+            <span className="hero-proof-sep" aria-hidden="true">·</span>
+            <span>open source on npm</span>
+            <span className="hero-proof-sep" aria-hidden="true">·</span>
+            <span>in production</span>
+          </p>
         </div>
 
         {/* Desktop / wide-viewport nav. Hidden at ≤820px (see globals.css) — the
