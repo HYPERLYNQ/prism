@@ -1,6 +1,7 @@
 "use client";
 
 import { type RefObject } from "react";
+import Link from "next/link";
 import { type MatName, type Swatch } from "@/lib/looks";
 import LookPanel from "./LookPanel";
 import BottomStrip from "@/components/nav/BottomStrip";
@@ -84,23 +85,27 @@ export default function HeroOverlay(props: HeroOverlayProps) {
             <span className="status-dot" />
             open to AI / FDE roles
           </div>
+          {/* Credential block — concrete shipped proof paired with availability so
+              the whole "hire-me" case sits in one corner, clear of the cycling
+              wordmark and debris. Type matches the overlay system: a mono tracked
+              label (like the role/status), grotesk value rows (like project names),
+              a mono sub-line. The two top rows link to the relevant case studies. */}
+          <div className="hero-cred">
+            <span className="hero-cred-k">Shipped</span>
+            <Link className="hero-cred-row" href="/work/wholesale-harmony">
+              Shopify App Store <span className="hero-cred-arr" aria-hidden="true">→</span>
+            </Link>
+            <Link className="hero-cred-row" href="/work/synaptic">
+              open source · npm <span className="hero-cred-arr" aria-hidden="true">→</span>
+            </Link>
+            <span className="hero-cred-sub">in production</span>
+          </div>
         </div>
 
         <div className="corner-bl">
           <p>
             <b>Builds applied AI end-to-end</b> — outreach pipelines, persistent memory for Claude
             Code, virality intelligence, shipping desktops. Solo, production-grade.
-          </p>
-          {/* Persistent, always-legible proof line. The hero's value-prop is
-              WebGL geometry that cycles through a dissolve, so credibility
-              shouldn't depend on reading the animation — these are concrete,
-              shipped facts in plain DOM text. */}
-          <p className="hero-proof">
-            <span>Live: Shopify App Store</span>
-            <span className="hero-proof-sep" aria-hidden="true">·</span>
-            <span>open source on npm</span>
-            <span className="hero-proof-sep" aria-hidden="true">·</span>
-            <span>in production</span>
           </p>
         </div>
 

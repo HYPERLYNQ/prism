@@ -252,20 +252,47 @@ body {
   color: var(--ink);
   font-weight: 500;
 }
-/* Persistent proof line under the blurb — plain-language credibility that
- * doesn't depend on reading the cycling WebGL wordmark. Mono + uppercase so it
- * reads as a credential strip, not body copy. */
-.hero-proof {
-  margin-top: 10px;
+/* Credential block under the top-right status badge — concrete shipped proof
+ * paired with availability. Type matches the overlay system: mono tracked-
+ * uppercase label + sub-line (like `.m-role` / `.status`), grotesk value rows
+ * (like project names). Doesn't depend on reading the cycling WebGL wordmark. */
+.hero-cred {
+  margin-top: 14px;
   display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
-  font: 500 9.5px/1.4 var(--font-mono), monospace;
-  letter-spacing: 0.12em;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+  text-align: right;
+}
+.hero-cred-k {
+  font: 500 8px/1 var(--font-mono), monospace;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  padding-bottom: 8px;
+  margin-bottom: 3px;
+  border-bottom: 1px solid var(--hair);
+}
+.hero-cred-row {
+  font-family: var(--font-grotesk), sans-serif;
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 1.25;
+  color: var(--ink);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.hero-cred-arr { color: var(--ink-3); transition: transform 0.18s ease, color 0.18s ease; }
+.hero-cred-row:hover .hero-cred-arr { transform: translateX(3px); color: var(--ink); }
+.hero-cred-sub {
+  margin-top: 2px;
+  font: 500 8.5px/1 var(--font-mono), monospace;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--ink-3);
 }
-.hero-proof-sep { color: var(--hair); }
 
 /* Bottom strip — WORK label + project links on the left, contact + location on
  * the right. Background spans the full viewport (the gradient veil should
@@ -994,9 +1021,9 @@ body.dark .mob-sheet-panel {
     bottom: 130px;
     font-size: 10.5px;
   }
-  /* Proof line hidden on small phones — the bottom-left zone is tight above the
-     mobile bar and the blurb already carries the message there. */
-  .hero-proof { display: none; }
+  /* Credential block hidden on small phones — the top-right corner is tight at
+     this width (the status badge already runs near the edge). */
+  .hero-cred { display: none; }
 
   /* Bottom strip: edge-to-edge with tighter padding. */
   .strip { padding: 10px 18px 12px; }
@@ -1113,24 +1140,15 @@ body.dark .mob-sheet-panel {
 .project-hero-banner {
   position: relative;
   background: linear-gradient(135deg, var(--banner-accent) 0%, var(--banner-accent-deep) 100%);
-  /* Banner text colour follows the accent's lightness (the `.is-dark` modifier
-   * is added by ProjectHeroBanner when `accent.dark`). White text "always" read
-   * as a cohesive set but FAILED WCAG AA on the light accents: measured white-
-   * on-accent was chartreuse 2.59:1, gold-leaf 2.55:1, burnt-orange 3.45:1 — all
-   * under the 4.5:1 the 17px tagline needs (and chartreuse/gold-leaf under even
-   * the 3:1 large-text floor for the title). So:
-   *   • light accents (chartreuse, burnt-orange, gold-leaf) → dark ink text
-   *     (ink-on-chartreuse measures ~7:1; reads as deliberate editorial colour)
-   *   • dark accents (deep-teal, oxblood, aubergine, via `.is-dark`) → white,
-   *     which clears AA on all three. */
-  color: #0A0E14;
+  /* Banner text is white on every accent — the white-on-colour look is the
+   * intended brand treatment (reverted from the per-accent dark-ink contrast
+   * fix). Note: white-on-accent measures below WCAG AA on the light accents
+   * (chartreuse 2.59, gold-leaf 2.55, burnt-orange 3.45); if AA is needed later,
+   * fix it without changing the text colour (darken the gradient stops or add a
+   * subtle dark scrim behind the text) rather than switching to dark type. */
+  color: #ffffff;
   overflow: hidden;
   isolation: isolate; /* stacks the mesh's blend-modes below the title */
-}
-/* Dark accents (deep-teal, oxblood, aubergine) — white text clears AA on all
- * three (4.85 / 6.61 / 9.23:1). Added by ProjectHeroBanner via `accent.dark`. */
-.project-hero-banner.is-dark {
-  color: #ffffff;
 }
 /* Banner content shares the same wrap width AND horizontal padding as
  * `.project-page-wrap` (1080px max / 36px gutters) so the title's left edge
