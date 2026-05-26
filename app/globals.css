@@ -268,21 +268,40 @@ body {
 }
 .hero-cred-row {
   display: inline-flex;
-  align-items: center;
-  gap: 8px;
+  align-items: baseline;
+  gap: 0;
   font: 500 11px/1.9 var(--font-mono), monospace;
   letter-spacing: 0.04em;
-  color: var(--ink);
+  color: var(--ink-2);
   text-decoration: none;
 }
-.hero-cred-row.is-static { color: var(--ink-2); }
+/* Project name sits in full ink — the load-bearing word in the row. */
+.hero-cred-name { color: var(--ink); }
+/* Subdued dot separator and venue copy, with the version number even quieter. */
+.hero-cred-sep { color: var(--ink-3); margin: 0 6px; }
+.hero-cred-venue { color: var(--ink-2); }
+.hero-cred-ver { color: var(--ink-3); }
 .hero-cred-arr {
   font-size: 10px;
   color: var(--ink-3);
+  margin-left: 6px;
   transition: transform 0.18s ease, color 0.18s ease;
 }
-.hero-cred-row:hover { color: var(--ink); }
+.hero-cred-row:hover .hero-cred-name { color: var(--ink); }
+.hero-cred-row:hover .hero-cred-venue { color: var(--ink); }
 .hero-cred-row:hover .hero-cred-arr { transform: translate(2px, -2px); color: var(--ink); }
+
+/* Quiet 'see all' trailing link — acknowledges the 4 in-flight projects
+ * honestly without inflating them as shipped credentials. */
+.hero-cred-more {
+  margin-top: 5px;
+  font: 500 9.5px/1.4 var(--font-mono), monospace;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+  text-decoration: none;
+  transition: color 0.18s ease;
+}
+.hero-cred-more:hover { color: var(--ink-2); }
 
 /* Bottom strip — WORK label + project links on the left, contact + location on
  * the right. Background spans the full viewport (the gradient veil should

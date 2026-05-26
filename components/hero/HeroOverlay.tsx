@@ -93,12 +93,23 @@ export default function HeroOverlay(props: HeroOverlayProps) {
               studies; "in production" is a static statement. */}
           <div className="hero-cred">
             <Link className="hero-cred-row" href="/work/wholesale-harmony">
-              live on the shopify app store <span className="hero-cred-arr" aria-hidden="true">↗</span>
+              <span className="hero-cred-name">wholesale-harmony</span>
+              <span className="hero-cred-sep" aria-hidden="true">·</span>
+              <span className="hero-cred-venue">shopify app store</span>
+              <span className="hero-cred-arr" aria-hidden="true">↗</span>
             </Link>
             <Link className="hero-cred-row" href="/work/synaptic">
-              open-source tool on npm <span className="hero-cred-arr" aria-hidden="true">↗</span>
+              <span className="hero-cred-name">synaptic</span>
+              <span className="hero-cred-sep" aria-hidden="true">·</span>
+              <span className="hero-cred-venue">
+                npm <span className="hero-cred-ver">v1.7.6</span>
+              </span>
+              <span className="hero-cred-arr" aria-hidden="true">↗</span>
             </Link>
-            <span className="hero-cred-row is-static">apps running in production</span>
+            <Link className="hero-cred-more" href="/work">
+              + 4 in active build <span className="hero-cred-sep" aria-hidden="true">·</span> see all{" "}
+              <span aria-hidden="true">→</span>
+            </Link>
           </div>
         </div>
 
