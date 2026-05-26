@@ -108,10 +108,14 @@ export function useHeroScene(
       antialias: window.innerWidth < 1920,
       powerPreference: "high-performance",
     });
-    // Cap device pixel ratio at 1.75 (not 2): on high-DPI displays a 2× cap
-    // renders ~30% more pixels every frame for a barely-perceptible sharpness
-    // gain. 1.75 keeps the chrome crisp while easing GPU fill-rate / heat.
-    const pixelRatio = isMobile ? 1 : Math.min(window.devicePixelRatio, 1.75);
+    // Cap device pixel ratio. Desktop: 1.75 (not 2) — on high-DPI displays a 2×
+    // cap renders ~30% more pixels every frame for a barely-perceptible sharpness
+    // gain; 1.75 keeps the chrome crisp while easing GPU fill-rate / heat.
+    // Mobile: cap at 2 (was 1). DPR-1 on a 2.5–3× phone screen rendered the
+    // wordmark + debris at a quarter of the panel's native resolution — visibly
+    // pixelated. A small phone viewport at DPR 2 is still a modest pixel count
+    // (~1.3 MP), so the sharpness win comes cheap.
+    const pixelRatio = Math.min(window.devicePixelRatio, isMobile ? 2 : 1.75);
     renderer.setClearColor(0x000000, 0);
     renderer.setPixelRatio(pixelRatio);
     renderer.setSize(window.innerWidth, window.innerHeight);

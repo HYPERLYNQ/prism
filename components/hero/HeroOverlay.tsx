@@ -57,7 +57,7 @@ export default function HeroOverlay(props: HeroOverlayProps) {
 
   return (
     <>
-      <div className={`ui${ready ? " in" : ""}`}>
+      <div className={`ui${ready ? " in" : ""}${panelOpen ? " panel-open" : ""}`}>
         <div className="corner-tl" ref={topLeftRef}>
           <div className="masthead">
             <span className="wm">MIKE VIDAL</span>

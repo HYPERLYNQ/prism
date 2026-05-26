@@ -79,6 +79,17 @@ export default function ProjectAnimator({ routeKey, children }: ProjectAnimatorP
       return;
     }
 
+    // Mobile gets a lighter choreography. Two things jank badly on phones:
+    //   • animating `filter: blur()` on the section body — a full-area GPU blur
+    //     re-rasterised every tween frame, the single worst offender on mobile;
+    //   • `scrub` ScrollTriggers (banner parallax, per-section number scale) —
+    //     they run layout/paint work on every scroll event.
+    // Both are dropped below at ≤820px / coarse-pointer; the one-shot fade-up
+    // reveals and the cheap progress bar stay. Net: reveals that don't stutter.
+    const isMobile =
+      window.matchMedia("(max-width: 820px)").matches ||
+      window.matchMedia("(pointer: coarse)").matches;
+
     const ctx = gsap.context(() => {
       // ── Initial offsets ──────────────────────────────────────────────
       // CSS pre-paints `opacity: 0`; GSAP adds the from-position (y offset,
@@ -98,7 +109,7 @@ export default function ProjectAnimator({ routeKey, children }: ProjectAnimatorP
       gsap.set(".meta > *", { y: 14 });
       gsap.set(".project-section-num", { y: 40, scale: 0.92 });
       gsap.set(".project-section-title", { y: 18 });
-      gsap.set(".project-section-body", { y: 32, filter: "blur(4px)" });
+      gsap.set(".project-section-body", isMobile ? { y: 32 } : { y: 32, filter: "blur(4px)" });
       gsap.set(".project-highlights li:nth-child(odd)", { x: -28, y: 14 });
       gsap.set(".project-highlights li:nth-child(even)", { x: 28, y: 14 });
       gsap.set(".stack-accent span", { y: 18, scale: 0.86 });
@@ -127,16 +138,19 @@ export default function ProjectAnimator({ routeKey, children }: ProjectAnimatorP
         .to(".meta > *", { y: 0, opacity: 1, duration: 0.75, stagger: 0.07 }, "-=0.55");
 
       // ── Banner parallax — inner content drifts up as the page scrolls ──
-      gsap.to(".project-hero-banner-inner", {
-        yPercent: -18,
-        ease: "none",
-        scrollTrigger: {
-          trigger: ".project-hero-banner",
-          start: "top top",
-          end: "bottom top",
-          scrub: true,
-        },
-      });
+      // Desktop only — scrubbed transforms are a scroll-jank source on mobile.
+      if (!isMobile) {
+        gsap.to(".project-hero-banner-inner", {
+          yPercent: -18,
+          ease: "none",
+          scrollTrigger: {
+            trigger: ".project-hero-banner",
+            start: "top top",
+            end: "bottom top",
+            scrub: true,
+          },
+        });
+      }
 
       // ── Section entry stagger ────────────────────────────────────────
       // Each section's elements reveal with a small, choreographed sequence
@@ -166,7 +180,9 @@ export default function ProjectAnimator({ routeKey, children }: ProjectAnimatorP
           )
           .to(
             section.querySelector(".project-section-body"),
-            { y: 0, opacity: 1, filter: "blur(0px)", duration: 0.8 },
+            isMobile
+              ? { y: 0, opacity: 1, duration: 0.8 }
+              : { y: 0, opacity: 1, filter: "blur(0px)", duration: 0.8 },
             "-=0.55",
           );
 
@@ -216,26 +232,30 @@ export default function ProjectAnimator({ routeKey, children }: ProjectAnimatorP
       // — the transform is tied to scroll position via `scrub`. This is
       // the cinematic move the user asked for: the page reacts continuously
       // to scroll, not just on first entry.
-      gsap.utils.toArray<HTMLElement>(".project-section").forEach((section) => {
-        const num = section.querySelector(".project-section-num");
-        if (!num) return;
-        gsap.fromTo(
-          num,
-          { scale: 1, yPercent: 0, letterSpacing: "-0.04em" },
-          {
-            scale: 1.18,
-            yPercent: -8,
-            letterSpacing: "-0.06em",
-            ease: "none",
-            scrollTrigger: {
-              trigger: section,
-              start: "top 60%",
-              end: "bottom 40%",
-              scrub: 0.6,
+      // Desktop only — another scrubbed (per-scroll-frame) transform skipped on
+      // mobile. The number still reveals via the one-shot section timeline above.
+      if (!isMobile) {
+        gsap.utils.toArray<HTMLElement>(".project-section").forEach((section) => {
+          const num = section.querySelector(".project-section-num");
+          if (!num) return;
+          gsap.fromTo(
+            num,
+            { scale: 1, yPercent: 0, letterSpacing: "-0.04em" },
+            {
+              scale: 1.18,
+              yPercent: -8,
+              letterSpacing: "-0.06em",
+              ease: "none",
+              scrollTrigger: {
+                trigger: section,
+                start: "top 60%",
+                end: "bottom 40%",
+                scrub: 0.6,
+              },
             },
-          },
-        );
-      });
+          );
+        });
+      }
 
       // ── Reading progress bar at the top of the viewport ──
       const progress = root.querySelector<HTMLElement>(".project-progress-bar");

@@ -71,10 +71,12 @@ export default function ProjectBlobBanner({ slug: _slug }: ProjectBlobBannerProp
       powerPreference: "high-performance",
     });
     renderer.setClearColor(0x000000, 0);
-    // Mobile: cap pixel ratio at 1.5 (vs 2 on desktop) — halves the
-    // fragment-shading load on high-DPR phone screens for a barely
-    // perceptible quality difference at the banner's small size.
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1.5 : 1.75));
+    // Cap pixel ratio at 2 on both mobile and desktop. The blob's glossy,
+    // high-frequency reflections show aliasing badly at low DPR — 1.5 on phones
+    // left the surface looking soft/jaggy. The banner is a small element and the
+    // rAF loop pauses when it scrolls out of view (see IntersectionObserver
+    // below), so the extra fill cost is bounded.
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 2 : 1.75));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.1;
@@ -166,7 +168,8 @@ export default function ProjectBlobBanner({ slug: _slug }: ProjectBlobBannerProp
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const clock = new THREE.Clock();
     let rafId = 0;
-    let running = true;
+    let looping = false;
+    let onScreen = true;
 
     // Per-ball phase offsets — deterministic so SSR and CSR match.
     const phases: number[] = [];
@@ -355,7 +358,6 @@ export default function ProjectBlobBanner({ slug: _slug }: ProjectBlobBannerProp
     const INTRO_DUR = 1.9;
 
     const animate = () => {
-      if (!running) return;
       rafId = requestAnimationFrame(animate);
       const t = clock.getElapsedTime();
       const introT = Math.min(1, t / INTRO_DUR);
@@ -377,24 +379,54 @@ export default function ProjectBlobBanner({ slug: _slug }: ProjectBlobBannerProp
       renderer.render(scene, camera);
     };
 
+    // Start / stop the rAF loop based on whether the banner is on-screen AND the
+    // tab is visible. Pausing while scrolled away is the big mobile-scroll win:
+    // the marching-cubes polygonize + WebGL render no longer compete with the
+    // scroll for the main thread / GPU once the banner leaves the viewport.
+    // The clock is never `stop()`ped (that would reset elapsedTime to 0 and
+    // replay the intro); instead we reset `oldTime` on resume so the next delta
+    // is ~0 and the morph continues seamlessly from where it paused.
+    const sync = () => {
+      if (reducedMotion) return;
+      const shouldRun = onScreen && !document.hidden;
+      if (shouldRun && !looping) {
+        looping = true;
+        clock.oldTime =
+          typeof performance !== "undefined" ? performance.now() : Date.now();
+        rafId = requestAnimationFrame(animate);
+      } else if (!shouldRun && looping) {
+        looping = false;
+        cancelAnimationFrame(rafId);
+      }
+    };
+
     if (reducedMotion) {
       updateBalls(0, 1); // fully merged, no coalescence
       updateMeshPosition(0);
       mcubes.scale.setScalar(responsiveScale); // skip intro animation
       renderer.render(scene, camera);
     } else {
-      animate();
+      sync();
     }
 
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        onScreen = entry.isIntersecting;
+        sync();
+      },
+      { threshold: 0 },
+    );
+    io.observe(container);
+
     const onVisibility = () => {
-      if (document.hidden) clock.stop();
-      else clock.start();
+      sync();
     };
     document.addEventListener("visibilitychange", onVisibility);
 
     return () => {
-      running = false;
+      looping = false;
       cancelAnimationFrame(rafId);
+      io.disconnect();
       document.removeEventListener("visibilitychange", onVisibility);
       ro.disconnect();
       mcubes.geometry.dispose();

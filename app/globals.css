@@ -391,6 +391,14 @@ body {
   margin-top: 10px;
   width: max-content;
   max-width: 340px;
+  /* Cap to the space below the masthead and scroll internally — the four rows
+     are taller than a short (or 601–820px) viewport, so without this the lower
+     rows (debris) overflow below the fold with no way to reach them. The ≤600px
+     bottom-sheet sets its own max-height. */
+  max-height: calc(100dvh - 120px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   padding: 14px 14px 12px;
   border: 1px solid var(--hair);
   border-radius: 12px;
@@ -950,22 +958,51 @@ body.dark .mob-sheet-panel {
   .strip { padding: 10px 18px 12px; }
   .work-links { font-size: 13px; }
 
-  /* Bottom-sheet picker: full-width slide-up panel with big tap targets. */
+  /* Bottom-sheet picker: full-width slide-up panel with big tap targets.
+     `z-index` lifts it above the `.corner-bl` blurb (a later sibling in DOM
+     order that would otherwise paint on top), and the background is fully
+     OPAQUE on mobile — the desktop panel's translucent `color-mix` let the
+     blurb text bleed through the swatch rows on phones. */
   .lookpanel {
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
+    z-index: 6;
     width: auto;
     max-width: none;
+    /* Cap the sheet height and let it scroll internally — the four rows
+       (finish + 3 swatch grids) are taller than a short / landscape phone
+       viewport, so without this the last debris row is unreachable. */
+    max-height: calc(100dvh - 48px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
     margin-top: 0;
     padding: 20px 22px calc(22px + env(safe-area-inset-bottom, 0));
     border: none;
     border-top: 1px solid var(--hair);
     border-radius: 16px 16px 0 0;
+    background: var(--bg);
+    backdrop-filter: none;
     transform: translateY(100%);
   }
+  body.dark .lookpanel { background: var(--bg); }
   .lookpanel.open { transform: translateY(0); }
+
+  /* While the bottom-sheet is up it covers the lower viewport — fade the blurb
+     and status badge out so nothing peeks through or competes for attention. */
+  .ui.panel-open .corner-bl,
+  .ui.panel-open .corner-tr {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.18s ease;
+  }
+  /* `.corner-tl` is `position: fixed` → it forms its own stacking context, so
+     the panel's `z-index` can't beat the mobile nav bar (`.mob-bar`, z-index 4)
+     from inside it. Lift the whole corner above the bar while the sheet is open
+     so the opaque sheet cleanly covers it (still below the nav sheet at z 8). */
+  .ui.panel-open .corner-tl { z-index: 7; }
   .lp-row { flex-direction: column; gap: 8px; align-items: flex-start; }
   .lp-row + .lp-row { margin-top: 14px; padding-top: 14px; }
   .lp-lbl { width: auto; flex: 0 0 auto; padding-top: 0; }
