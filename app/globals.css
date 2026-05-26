@@ -2320,6 +2320,38 @@ body.dark .mob-sheet-panel {
 .resume-writing { font-size: 14.5px; color: var(--ink-2); margin: 0; }
 .resume-writing a { color: var(--ink); }
 
+/* Education list — short, stable, two-line entries (school + degree on top,
+ * year + location on the right). Same border-top divider rhythm as the
+ * projects list above; quieter type since these are credentials, not work. */
+.resume-education { list-style: none; padding: 0; margin: 0; }
+.resume-edu { padding: 16px 0; border-top: 1px solid var(--hair); }
+.resume-edu:first-child { border-top: 0; padding-top: 0; }
+.resume-edu-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 18px;
+  flex-wrap: wrap;
+}
+.resume-edu-school {
+  font-family: var(--font-grotesk), sans-serif;
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 1.3;
+  letter-spacing: -0.005em;
+  color: var(--ink);
+  margin: 0;
+}
+.resume-edu-sep { color: var(--ink-3); margin: 0 4px; }
+.resume-edu-degree { color: var(--ink-2); font-weight: 500; }
+.resume-edu-meta {
+  font: 500 11px/1 var(--font-mono), monospace;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
 /* ── Print: tuned for letter / A4 / standard browser "Save as PDF". ─────── */
 @media print {
   /* Hard-set whites so the warm bg doesn't tint a printed PDF; remove the

@@ -26,7 +26,7 @@ export const SITE_NAME = "Mike Vidal";
 export const OWNER_NAME = "Mike Vidal";
 export const OWNER_ROLE = "AI Engineer";
 export const OWNER_LOCATION = "Miami · open to remote";
-export const OWNER_EMAIL = "ruckus@tuta.com";
+export const OWNER_EMAIL = "michael@kromeandco.com";
 export const OWNER_GITHUB = "https://github.com/HYPERLYNQ";
 
 /** Default OG/Twitter image dimensions — Next conventions for `opengraph-image`. */

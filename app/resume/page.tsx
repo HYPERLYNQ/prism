@@ -151,6 +151,42 @@ export default function ResumePage() {
       </section>
 
       <section className="resume-section">
+        <h2 className="resume-h2">Education</h2>
+        <ul className="resume-education">
+          {/* Most relevant first: the software-engineering credential, then the
+              UMiami BS, then the brief language-studies term. Inline because the
+              list is short, stable, and only used here — no separate data file. */}
+          <li className="resume-edu">
+            <div className="resume-edu-head">
+              <h3 className="resume-edu-school">
+                BrainStation <span className="resume-edu-sep" aria-hidden="true">·</span>{" "}
+                <span className="resume-edu-degree">Diploma, Software Engineering</span>
+              </h3>
+              <span className="resume-edu-meta">2023 · Miami, FL</span>
+            </div>
+          </li>
+          <li className="resume-edu">
+            <div className="resume-edu-head">
+              <h3 className="resume-edu-school">
+                University of Miami <span className="resume-edu-sep" aria-hidden="true">·</span>{" "}
+                <span className="resume-edu-degree">Bachelor of Science, Entrepreneurship</span>
+              </h3>
+              <span className="resume-edu-meta">2008–2012 · Miami, FL</span>
+            </div>
+          </li>
+          <li className="resume-edu">
+            <div className="resume-edu-head">
+              <h3 className="resume-edu-school">
+                Shanghai Jiao Tong University <span className="resume-edu-sep" aria-hidden="true">·</span>{" "}
+                <span className="resume-edu-degree">Language Studies</span>
+              </h3>
+              <span className="resume-edu-meta">2013 · Shanghai, China</span>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      <section className="resume-section">
         <h2 className="resume-h2">Writing</h2>
         <p className="resume-writing">
           <Link href="/blog">{cleanHost(SITE_URL)}/blog</Link> — notes on applied AI,
