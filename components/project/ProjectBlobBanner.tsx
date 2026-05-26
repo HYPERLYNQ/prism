@@ -166,7 +166,14 @@ export default function ProjectBlobBanner({ slug: _slug }: ProjectBlobBannerProp
 
     // ── Animation state ──────────────────────────────────────────────
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const clock = new THREE.Clock();
+    // THREE.Timer (modern replacement for the deprecated THREE.Clock).
+    // `connect(document)` wires the Page Visibility API automatically — time
+    // doesn't advance while the tab is hidden, so the rAF loop's per-frame
+    // mesh update reads the same `t` and produces no visible drift (the
+    // browser throttles rAF for hidden tabs as well). Removes the manual
+    // `visibilitychange` listener the Clock version needed.
+    const timer = new THREE.Timer();
+    timer.connect(document);
     let rafId = 0;
     let looping = false;
     let onScreen = true;
@@ -359,7 +366,10 @@ export default function ProjectBlobBanner({ slug: _slug }: ProjectBlobBannerProp
 
     const animate = () => {
       rafId = requestAnimationFrame(animate);
-      const t = clock.getElapsedTime();
+      // Timer requires an explicit `update()` per frame to compute the new
+      // delta + elapsed (Clock used to do this implicitly inside getElapsedTime).
+      timer.update();
+      const t = timer.getElapsed();
       const introT = Math.min(1, t / INTRO_DUR);
       // Smoothstep convergence — slow at the start (droplets hang apart), fast
       // through the middle (they rush together), settling gently at the end.
@@ -379,22 +389,28 @@ export default function ProjectBlobBanner({ slug: _slug }: ProjectBlobBannerProp
       renderer.render(scene, camera);
     };
 
-    // Start / stop the rAF loop based on whether the banner is on-screen AND the
-    // tab is visible. Pausing while scrolled away is the big mobile-scroll win:
-    // the marching-cubes polygonize + WebGL render no longer compete with the
-    // scroll for the main thread / GPU once the banner leaves the viewport.
-    // The clock is never `stop()`ped (that would reset elapsedTime to 0 and
-    // replay the intro); instead we reset `oldTime` on resume so the next delta
-    // is ~0 and the morph continues seamlessly from where it paused.
+    // Start / stop the rAF loop based on whether the banner is on-screen.
+    // Tab-visibility is handled by `timer.connect(document)` above (browser
+    // also throttles rAF for hidden tabs), so we only gate on the off-screen
+    // IntersectionObserver here. Pausing while scrolled away is the big
+    // mobile-scroll win: marching-cubes polygonize + WebGL render no longer
+    // compete with the scroll for the main thread / GPU once the banner leaves
+    // the viewport. To avoid a delta jump on resume — Timer would otherwise
+    // see a huge `now - previousTime` and elapsed would skip forward by the
+    // pause duration — we reset `previousTime` to the current clock so the
+    // next `update()` produces a ~0 delta and the morph continues from where
+    // it paused.
     const sync = () => {
       if (reducedMotion) return;
-      const shouldRun = onScreen && !document.hidden;
-      if (shouldRun && !looping) {
+      if (onScreen && !looping) {
         looping = true;
-        clock.oldTime =
-          typeof performance !== "undefined" ? performance.now() : Date.now();
+        // Avoid a delta-jump on resume: `reset()` advances Timer's internal
+        // reference time to "now" so the next `update()` produces a ~0 delta
+        // and elapsed continues smoothly from where it paused. (`reset()` does
+        // NOT zero out elapsed — it's specifically the resume hook.)
+        timer.reset();
         rafId = requestAnimationFrame(animate);
-      } else if (!shouldRun && looping) {
+      } else if (!onScreen && looping) {
         looping = false;
         cancelAnimationFrame(rafId);
       }
@@ -418,16 +434,14 @@ export default function ProjectBlobBanner({ slug: _slug }: ProjectBlobBannerProp
     );
     io.observe(container);
 
-    const onVisibility = () => {
-      sync();
-    };
-    document.addEventListener("visibilitychange", onVisibility);
+    // No manual `visibilitychange` listener needed — `timer.connect(document)`
+    // wires the Page Visibility API into the Timer for us.
 
     return () => {
       looping = false;
       cancelAnimationFrame(rafId);
       io.disconnect();
-      document.removeEventListener("visibilitychange", onVisibility);
+      timer.disconnect();
       ro.disconnect();
       mcubes.geometry.dispose();
       material.dispose();
