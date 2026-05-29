@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { PROJECTS, getProjectAccent } from "@/lib/projects";
+import { PROJECTS } from "@/lib/projects";
 import { OWNER_EMAIL, OWNER_GITHUB, OWNER_LOCATION } from "@/lib/siteConfig";
 import type { MastheadTab } from "./Masthead";
 
@@ -27,6 +27,9 @@ type Props = {
 
 export default function MastheadMobile({ activeTab, activeProject }: Props) {
   const [open, setOpen] = useState(false);
+  // Work section is collapsed by default. If the visitor is currently ON a
+  // project page, default-expand so the active project is immediately visible.
+  const [workOpen, setWorkOpen] = useState(Boolean(activeProject));
 
   // Lock body scroll while the sheet is up.
   useEffect(() => {
@@ -92,11 +95,71 @@ export default function MastheadMobile({ activeTab, activeProject }: Props) {
             </button>
           </div>
 
-          {/* Primary nav — Writing + Resume only. Work is NOT a separate top-
-              level link because that would duplicate the projects section
-              below; the Work section IS the projects (with a 'View all work →'
-              link at its end for visitors who want the /work index page). */}
+          {/* Primary nav — three equal-weight destinations. Work is a
+              collapsible accordion: tap the row to expand / collapse the
+              project list inline. The chevron (▾ / ▴) signals state. Default-
+              expanded when the visitor is currently on a project page. */}
           <nav className="masthead-sheet-nav" aria-label="Primary">
+            <button
+              type="button"
+              className={`masthead-sheet-link masthead-sheet-link-work${activeTab === "work" ? " is-active" : ""}${workOpen ? " is-open" : ""}`}
+              aria-expanded={workOpen}
+              aria-controls="masthead-sheet-projects"
+              onClick={() => setWorkOpen((v) => !v)}
+            >
+              <span>Work</span>
+              <span className="masthead-sheet-meta">
+                {String(PROJECTS.length).padStart(2, "0")}
+                <span className="masthead-sheet-chev" aria-hidden="true">▾</span>
+              </span>
+            </button>
+
+            {/* Project list — always in the DOM so the grid-template-rows
+                transition can interpolate height smoothly between 0fr / 1fr.
+                `aria-hidden` mirrors the visual state for assistive tech. */}
+            <div
+              id="masthead-sheet-projects"
+              className={`masthead-sheet-projects-wrap${workOpen ? " is-open" : ""}`}
+              aria-hidden={!workOpen}
+            >
+              <div className="masthead-sheet-projects-inner">
+                <ol className="masthead-sheet-projects">
+                  {PROJECTS.map((project, i) => {
+                    const isActive = project.slug === activeProject;
+                    return (
+                      <li
+                        key={project.slug}
+                        className={`masthead-sheet-project-item${isActive ? " is-active" : ""}`}
+                      >
+                        <Link
+                          href={`/work/${project.slug}`}
+                          onClick={close}
+                          className="masthead-sheet-project"
+                          aria-current={isActive ? "page" : undefined}
+                          tabIndex={workOpen ? 0 : -1}
+                        >
+                          <span className="masthead-sheet-num">
+                            {String(i + 1).padStart(2, "0")}
+                          </span>
+                          <span className="masthead-sheet-name">{project.name}</span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                  <li>
+                    <Link
+                      href="/work"
+                      onClick={close}
+                      className={`masthead-sheet-viewall${activeTab === "work" && !activeProject ? " is-active" : ""}`}
+                      tabIndex={workOpen ? 0 : -1}
+                    >
+                      View all work <span aria-hidden="true">→</span>
+                    </Link>
+                  </li>
+                </ol>
+              </div>
+            </div>
+
             <Link
               href="/blog"
               onClick={close}
@@ -114,49 +177,6 @@ export default function MastheadMobile({ activeTab, activeProject }: Props) {
               <span className="masthead-sheet-meta">/resume</span>
             </Link>
           </nav>
-
-          <section className="masthead-sheet-section">
-            <span
-              className={`masthead-sheet-eyebrow${activeTab === "work" ? " is-active" : ""}`}
-            >
-              Work · {String(PROJECTS.length).padStart(2, "0")}
-            </span>
-            <ol className="masthead-sheet-projects">
-              {PROJECTS.map((project, i) => {
-                const accent = getProjectAccent(project.slug);
-                const isActive = project.slug === activeProject;
-                return (
-                  <li
-                    key={project.slug}
-                    className={`masthead-sheet-project-item${isActive ? " is-active" : ""}`}
-                    style={{ "--accent": accent.hex } as React.CSSProperties}
-                  >
-                    <Link
-                      href={`/work/${project.slug}`}
-                      onClick={close}
-                      className="masthead-sheet-project"
-                      aria-current={isActive ? "page" : undefined}
-                    >
-                      <span className="masthead-sheet-num">
-                        {String(i + 1).padStart(2, "0")}
-                      </span>
-                      <span className="masthead-sheet-name">{project.name}</span>
-                      <span className="masthead-sheet-tag">{project.tagline}</span>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ol>
-            {/* Closing entry — explicit link to the /work index for visitors
-                who want the full list page rather than jumping to a project. */}
-            <Link
-              href="/work"
-              onClick={close}
-              className={`masthead-sheet-viewall${activeTab === "work" && !activeProject ? " is-active" : ""}`}
-            >
-              View all work <span aria-hidden="true">→</span>
-            </Link>
-          </section>
 
           <section className="masthead-sheet-section">
             <span className="masthead-sheet-eyebrow">Contact</span>

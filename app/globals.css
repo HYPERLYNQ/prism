@@ -1858,56 +1858,28 @@ body {
   display: block;
   margin-bottom: 10px;
 }
-.masthead-sheet-projects {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-}
-.masthead-sheet-project-item {
-  border-bottom: 1px solid var(--hair);
-}
-.masthead-sheet-project-item:last-child { border-bottom: 0; }
+/* Compact project list — number + name only (no tagline), so an expanded
+ * Work section stays scannable instead of dominating the sheet. */
 .masthead-sheet-project {
   display: grid;
   grid-template-columns: 32px 1fr;
-  gap: 12px 14px;
-  padding: 13px 6px 13px 14px;
-  position: relative;
+  align-items: baseline;
+  gap: 0 14px;
+  padding: 10px 6px 10px 22px;
   text-decoration: none;
   color: var(--ink);
-  transition: background 0.15s;
-}
-.masthead-sheet-project::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  background: transparent;
-  transition: background 0.15s;
-}
-.masthead-sheet-project-item.is-active .masthead-sheet-project::before {
-  background: var(--accent, var(--ink));
 }
 .masthead-sheet-num {
-  font: 500 10px/1.4 var(--font-mono), monospace;
+  font: 500 10px/1 var(--font-mono), monospace;
   letter-spacing: 0.12em;
   color: var(--ink-3);
 }
 .masthead-sheet-name {
-  font: 600 16px/1.2 var(--font-grotesk), sans-serif;
+  font: 500 15px/1 var(--font-grotesk), sans-serif;
   letter-spacing: -0.005em;
 }
 .masthead-sheet-project-item.is-active .masthead-sheet-name { font-weight: 700; }
-.masthead-sheet-tag {
-  grid-column: 2;
-  font: 500 12px/1.5 var(--font-mono), monospace;
-  color: var(--ink-2);
-  margin-top: 2px;
-}
+.masthead-sheet-project-item.is-active .masthead-sheet-num { color: var(--ink); }
 .masthead-sheet-contact {
   display: flex;
   flex-wrap: wrap;
@@ -1932,30 +1904,81 @@ body {
   margin-top: 4px;
 }
 
-/* "View all work →" — closing entry under the project list. Quiet link that
- * mirrors the project rows (same hairline divider) so it reads as the LAST
- * item in the Work section rather than a separate CTA. */
+/* "View all work →" — closing entry under the expanded project list, takes
+ * visitors to the /work index page. Quieter than a project row, mono micro-
+ * caps so it reads as a meta affordance, not another project. */
 .masthead-sheet-viewall {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 6px 14px 14px;
-  border-top: 1px solid var(--hair);
-  font: 500 11px/1 var(--font-mono), monospace;
+  display: block;
+  padding: 12px 6px 6px 22px;
+  font: 500 10px/1 var(--font-mono), monospace;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--ink-2);
+  color: var(--ink-3);
   text-decoration: none;
   transition: color 0.15s;
 }
 .masthead-sheet-viewall:hover { color: var(--ink); }
 .masthead-sheet-viewall.is-active { color: var(--ink); font-weight: 700; }
 
-/* Active section eyebrow — bold ink when the visitor is on a Work page
- * (project or /work index). Keeps the section navigation legible. */
-.masthead-sheet-eyebrow.is-active {
+/* Work accordion — the Work row doubles as the accordion trigger. It already
+ * carries the `.masthead-sheet-link` class (which sets grotesk 500 18px), so
+ * this rule ONLY resets the native button chrome — do NOT set `font: inherit`
+ * here (that would walk up to body mono and override the link styles). */
+.masthead-sheet-link-work {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--hair);
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  /* font + color inherit naturally from `.masthead-sheet-link` — same class,
+     equal specificity, earlier in source, so the link styles win. */
+}
+.masthead-sheet-chev {
+  display: inline-block;
+  margin-left: 10px;
+  font-size: 11px;
+  color: var(--ink-3);
+  /* Animated rotation: collapsed = ▾ (rotated 0°); expanded = ▴ (rotated 180°).
+     We render only ▾ in the DOM and flip it on `.is-open` for a smooth turn. */
+  transform: rotate(0deg);
+  transform-origin: center;
+  transition: transform 0.28s cubic-bezier(0.2, 0.7, 0.2, 1), color 0.15s;
+}
+.masthead-sheet-link-work.is-open .masthead-sheet-chev {
+  transform: rotate(180deg);
   color: var(--ink);
-  font-weight: 700;
+}
+.masthead-sheet-link-work:hover .masthead-sheet-chev { color: var(--ink); }
+
+/* Project list animation — always rendered in the DOM so we can transition
+ * grid-template-rows from 0fr → 1fr (modern browsers; degrades gracefully).
+ * `overflow: hidden` clips the list until the row resolves. The inner
+ * wrapper is what actually scales; transitioning the grid track gives us a
+ * true height interpolation (which `max-height` only approximates). */
+.masthead-sheet-projects-wrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition:
+    grid-template-rows 0.34s cubic-bezier(0.2, 0.7, 0.2, 1),
+    opacity 0.22s ease;
+  opacity: 0;
+}
+.masthead-sheet-projects-wrap.is-open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+.masthead-sheet-projects-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+.masthead-sheet-projects {
+  list-style: none;
+  margin: 0;
+  padding: 6px 0 4px;
+  background: color-mix(in srgb, var(--ink) 2.5%, transparent);
+  border-bottom: 1px solid var(--hair);
 }
 
 /* Mobile — hide desktop tabs, show hamburger. Done at <=820px so the
