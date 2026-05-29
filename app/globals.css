@@ -1932,6 +1932,32 @@ body {
   margin-top: 4px;
 }
 
+/* "View all work →" — closing entry under the project list. Quiet link that
+ * mirrors the project rows (same hairline divider) so it reads as the LAST
+ * item in the Work section rather than a separate CTA. */
+.masthead-sheet-viewall {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 6px 14px 14px;
+  border-top: 1px solid var(--hair);
+  font: 500 11px/1 var(--font-mono), monospace;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+.masthead-sheet-viewall:hover { color: var(--ink); }
+.masthead-sheet-viewall.is-active { color: var(--ink); font-weight: 700; }
+
+/* Active section eyebrow — bold ink when the visitor is on a Work page
+ * (project or /work index). Keeps the section navigation legible. */
+.masthead-sheet-eyebrow.is-active {
+  color: var(--ink);
+  font-weight: 700;
+}
+
 /* Mobile — hide desktop tabs, show hamburger. Done at <=820px so the
  * existing site-wide ≤820 breakpoint matches. */
 @media (max-width: 820px) {

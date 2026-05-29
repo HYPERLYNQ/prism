@@ -92,15 +92,11 @@ export default function MastheadMobile({ activeTab, activeProject }: Props) {
             </button>
           </div>
 
+          {/* Primary nav — Writing + Resume only. Work is NOT a separate top-
+              level link because that would duplicate the projects section
+              below; the Work section IS the projects (with a 'View all work →'
+              link at its end for visitors who want the /work index page). */}
           <nav className="masthead-sheet-nav" aria-label="Primary">
-            <Link
-              href="/work"
-              onClick={close}
-              className={`masthead-sheet-link${activeTab === "work" ? " is-active" : ""}`}
-            >
-              <span>Work</span>
-              <span className="masthead-sheet-meta">{String(PROJECTS.length).padStart(2, "0")}</span>
-            </Link>
             <Link
               href="/blog"
               onClick={close}
@@ -120,8 +116,10 @@ export default function MastheadMobile({ activeTab, activeProject }: Props) {
           </nav>
 
           <section className="masthead-sheet-section">
-            <span className="masthead-sheet-eyebrow">
-              Projects · {String(PROJECTS.length).padStart(2, "0")}
+            <span
+              className={`masthead-sheet-eyebrow${activeTab === "work" ? " is-active" : ""}`}
+            >
+              Work · {String(PROJECTS.length).padStart(2, "0")}
             </span>
             <ol className="masthead-sheet-projects">
               {PROJECTS.map((project, i) => {
@@ -149,6 +147,15 @@ export default function MastheadMobile({ activeTab, activeProject }: Props) {
                 );
               })}
             </ol>
+            {/* Closing entry — explicit link to the /work index for visitors
+                who want the full list page rather than jumping to a project. */}
+            <Link
+              href="/work"
+              onClick={close}
+              className={`masthead-sheet-viewall${activeTab === "work" && !activeProject ? " is-active" : ""}`}
+            >
+              View all work <span aria-hidden="true">→</span>
+            </Link>
           </section>
 
           <section className="masthead-sheet-section">
