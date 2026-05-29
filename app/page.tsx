@@ -1,4 +1,5 @@
 import Hero from "@/components/Hero";
+import Masthead from "@/components/nav/Masthead";
 import { personSchema } from "@/lib/jsonLd";
 
 /**
@@ -16,6 +17,8 @@ export default function Home() {
         anywhere in the chain, so there's no XSS surface.
       */}
       <script type="application/ld+json">{JSON.stringify(schema)}</script>
+      {/* No `activeTab` — the home page is the wordmark's anchor, not a tab. */}
+      <Masthead />
       <Hero />
     </>
   );

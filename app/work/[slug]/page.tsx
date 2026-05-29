@@ -4,13 +4,11 @@ import { notFound } from "next/navigation";
 import { PROJECTS, getProject, getProjectAccent } from "@/lib/projects";
 import { creativeWorkSchema } from "@/lib/jsonLd";
 import ProjectAnimator from "@/components/project/ProjectAnimator";
-import ProjectTopbar from "@/components/project/ProjectTopbar";
 import ProjectHeroBanner from "@/components/project/ProjectHeroBanner";
 import ProjectDemo from "@/components/project/ProjectDemo";
 import ProjectMeta from "@/components/project/ProjectMeta";
 import ProjectPrevNext from "@/components/project/ProjectPrevNext";
-import BottomStrip from "@/components/nav/BottomStrip";
-import MobileIndexSheet from "@/components/nav/MobileIndexSheet";
+import Masthead from "@/components/nav/Masthead";
 
 /**
  * Project case-study page at `/work/[slug]`.
@@ -18,15 +16,12 @@ import MobileIndexSheet from "@/components/nav/MobileIndexSheet";
  * Statically generated at build time for every project — `generateStaticParams`
  * yields one entry per project slug. Unknown slugs surface as 404.
  *
- * Composition:
- *   • `ProjectTopbar` — sticky, with a horizontal scroll-strip switcher
+ * Composition (post tabbed-masthead refactor):
+ *   • `Masthead` — site-wide top bar with the Work tab active and the project
+ *                  name shown alongside the tab (replaces the old ProjectTopbar)
+ *   • `ProjectAnimator` — wraps the body for scroll-reveal staggers
  *   • `ProjectHeroBanner` — coloured banner with title + 3-D mini canvas
- *   • `PageEnter` — wraps the body so the stagger animation re-runs on every nav
- *   • Breadcrumb + `ProjectMeta` (meta-grid + body + highlights + stack + link)
- *   • `ProjectPrevNext` — wrapping prev/next pager
- *
- * The `key={slug}` on `PageEnter` forces a remount per route — which restarts the
- * CSS stagger so it actually re-plays each time you navigate between projects.
+ *   • Breadcrumb + optional `ProjectDemo` + `ProjectMeta` + `ProjectPrevNext`
  */
 
 type RouteParams = { slug: string };
@@ -89,7 +84,7 @@ export default async function ProjectPage({ params }: { params: Promise<RoutePar
         anywhere in the chain, so there's no XSS surface.
       */}
       <script type="application/ld+json">{JSON.stringify(schema)}</script>
-      <ProjectTopbar />
+      <Masthead activeTab="work" activeProject={project.slug} />
 
       <ProjectAnimator routeKey={project.slug}>
         <ProjectHeroBanner project={project} accent={accent} />
@@ -116,11 +111,6 @@ export default async function ProjectPage({ params }: { params: Promise<RoutePar
       <footer className="project-page-footer">
         Mike Vidal · Miami · open to remote
       </footer>
-
-      {/* Persistent bottom nav — same pattern as the home page. The
-          MobileIndexSheet swaps in at ≤820px (see globals.css). */}
-      <BottomStrip activeSlug={project.slug} />
-      <MobileIndexSheet activeSlug={project.slug} />
     </div>
   );
 }

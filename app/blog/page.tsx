@@ -2,9 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getAllPostsMeta } from "@/lib/blog";
 import PageEnter from "@/components/project/PageEnter";
-import ProjectTopbar from "@/components/project/ProjectTopbar";
-import BottomStrip from "@/components/nav/BottomStrip";
-import MobileIndexSheet from "@/components/nav/MobileIndexSheet";
+import Masthead from "@/components/nav/Masthead";
 
 /**
  * Writing index at `/blog` — a reverse-chronological list of MDX posts.
@@ -28,7 +26,7 @@ export default async function BlogIndex() {
 
   return (
     <div className="project-page">
-      <ProjectTopbar />
+      <Masthead activeTab="writing" />
 
       <PageEnter>
         <div className="project-page-wrap project-page-wrap-wide">
@@ -69,9 +67,6 @@ export default async function BlogIndex() {
       </PageEnter>
 
       <footer className="project-page-footer">Mike Vidal · Miami · open to remote</footer>
-
-      <BottomStrip />
-      <MobileIndexSheet />
     </div>
   );
 }

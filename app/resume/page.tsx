@@ -9,6 +9,7 @@ import {
   OWNER_GITHUB,
   SITE_URL,
 } from "@/lib/siteConfig";
+import Masthead from "@/components/nav/Masthead";
 import ResumePrintButton from "./ResumePrintButton";
 
 /**
@@ -65,13 +66,12 @@ export default function ResumePage() {
   const cleanHost = (url: string) => url.replace(/^https?:\/\//, "");
 
   return (
-    <main className="resume">
-      {/* Back link — hidden in print so the saved PDF starts at the name. */}
-      <Link className="resume-back" href="/">
-        <span aria-hidden="true">←</span> mikevidal.dev
-      </Link>
-
-      <header className="resume-header">
+    <>
+      {/* Masthead is hidden in print via @media print { .masthead { display: none } }
+          (see globals.css) so the saved PDF starts at the resume name. */}
+      <Masthead activeTab="resume" />
+      <main className="resume">
+        <header className="resume-header">
         <div className="resume-header-l">
           <h1 className="resume-name">{OWNER_NAME}</h1>
           <p className="resume-role">
@@ -192,7 +192,8 @@ export default function ResumePage() {
           <Link href="/blog">{cleanHost(SITE_URL)}/blog</Link> — notes on applied AI,
           LLM pipelines, and shipping real systems.
         </p>
-      </section>
-    </main>
+        </section>
+      </main>
+    </>
   );
 }

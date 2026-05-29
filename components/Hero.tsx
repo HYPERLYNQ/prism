@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   DEFAULT_FINISH,
   DEFAULT_SWATCH,
@@ -8,27 +8,30 @@ import {
   type MatName,
   type Swatch,
 } from "@/lib/looks";
-import HeroOverlay from "./hero/HeroOverlay";
 import { useHeroScene } from "./hero/useHeroScene";
+import LookConsole from "./hero/LookConsole";
+import HomeBlurb from "./hero/HomeBlurb";
+import HomeCredentials from "./hero/HomeCredentials";
 import type { SceneApi } from "./hero/sceneTypes";
 
 /**
- * The landing-page hero — a WebGL scene of floating debris around a cycling 3-D
- * wordmark, with an overlay UI for picking the look (finish + three independent
- * tints: bg, hero, debris).
+ * The landing-page hero — a WebGL scene of floating debris around a cycling
+ * 3-D wordmark, with three overlay pieces around the scene:
  *
- * This file is a thin orchestrator:
- *   • holds the React state for which finish / swatches are picked + UI flags
- *   • owns the canvas + the top-left container refs
- *   • delegates the entire three.js world to `useHeroScene` (in `hero/`)
- *   • renders the canvas + `HeroOverlay`
+ *   • Bottom-left:    HomeBlurb — plain-language pitch
+ *   • Bottom-center:  LookConsole — picker for finish + bg + hero + debris tints
+ *   • Bottom-right:   HomeCredentials — shipped-work credentials
  *
- * The actual scene logic, materials, debris, wordmark, postprocessing and animation
- * loop are split into focused modules under `components/hero/`.
+ * The Masthead at the top of the page is rendered by `app/page.tsx`, not by
+ * Hero — Hero only owns what sits IN the WebGL canvas's viewport.
+ *
+ * Hero is the orchestrator: holds picker state, owns the canvas ref, and
+ * delegates the three.js scene to `useHeroScene`. The scene exposes an
+ * imperative API on `apiRef` so the LookConsole's callbacks mutate the
+ * three.js world directly without re-rendering React.
  */
 export default function Hero() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const topLeftRef = useRef<HTMLDivElement>(null);
   const apiRef = useRef<SceneApi | null>(null);
 
   /* ── picker state — duplicated to React for rendering, pushed to the scene via apiRef ── */
@@ -38,38 +41,20 @@ export default function Hero() {
   const [debrisColorName, setDebrisColorName] = useState<string>("ink");
 
   /* ── UI flags ── */
-  const [panelOpen, setPanelOpen] = useState(false);
-  /** Scene-ready (font loaded, first phrase built) → fades the UI in + dismisses the loader. */
   const [ready, setReady] = useState(false);
-  /** First cursor move detected → fades the hint out. */
   const [moved, setMoved] = useState(false);
-  /** WebGL unavailable / failed to init → swap the canvas for a DOM fallback. */
   const [webglFailed, setWebglFailed] = useState(false);
 
   /* ── set up the scene once on mount; the React layer pushes updates via apiRef ── */
   const handleReady = useCallback(() => setReady(true), []);
   const handleFirstMove = useCallback(() => setMoved(true), []);
-  // On WebGL failure: reveal the overlay (the loader would otherwise hang on
-  // "initializing") and flag the fallback so the value-prop still lands.
   const handleError = useCallback(() => {
     setWebglFailed(true);
     setReady(true);
   }, []);
   useHeroScene(canvasRef, apiRef, handleReady, handleFirstMove, handleError);
 
-  /* ── outside-click closes the look panel ── */
-  useEffect(() => {
-    if (!panelOpen) return;
-    function onDocClick(e: MouseEvent) {
-      const root = topLeftRef.current;
-      if (root && !root.contains(e.target as Node)) setPanelOpen(false);
-    }
-    document.addEventListener("click", onDocClick);
-    return () => document.removeEventListener("click", onDocClick);
-  }, [panelOpen]);
-
   /* ── picker callbacks — update both React state and the imperative scene API ── */
-  const togglePanel = useCallback(() => setPanelOpen((open) => !open), []);
   const pickFinish = useCallback((id: MatName) => {
     setFinish(id);
     apiRef.current?.setMaterial(id);
@@ -87,21 +72,25 @@ export default function Hero() {
     apiRef.current?.setDebrisColor(swatch);
   }, []);
 
+  /* ── current-selection hex lookups for the inline swatch dots in LookConsole ── */
   const bgHex = SWATCHES.find((s) => s.name === bgColorName)?.hex ?? "#FFFFFF";
+  const heroHex = SWATCHES.find((s) => s.name === heroColorName)?.hex ?? "#0A0E14";
+  const debrisHex = SWATCHES.find((s) => s.name === debrisColorName)?.hex ?? "#0A0E14";
 
   return (
-    <div className={`hero-root${webglFailed ? " webgl-failed" : ""}`}>
+    <div className={`hero-root${webglFailed ? " webgl-failed" : ""}${ready ? " is-ready" : ""}`}>
       <h1 className="sr-only">Mike Vidal — AI Engineer</h1>
       {/* Crawlable description — the hero's value-prop phrases are WebGL geometry,
-          not DOM text, so without this the home page has almost no indexable copy.
-          Kept accurate: applied AI / shipping LLM-powered systems, not building models. */}
+          not DOM text, so without this the home page has almost no indexable copy. */}
       <p className="sr-only">
         Applied-AI engineer based in Miami, open to remote. I ship LLM-powered
         systems to production — multi-stage pipelines, tool-use, structured
         output, and human-in-the-loop workflows — building real, deployed
         products rather than demos.
       </p>
+
       <canvas ref={canvasRef} className="hero-canvas" />
+
       {/* Visual fallback when WebGL can't init — the 3D wordmark carries the
           value-prop, so without the canvas we paint it as plain type instead of
           leaving a blank stage. (The sr-only copy above covers SEO / a11y.) */}
@@ -112,22 +101,35 @@ export default function Hero() {
           </p>
         </div>
       )}
-      <HeroOverlay
-        topLeftRef={topLeftRef}
-        ready={ready}
-        moved={moved}
-        panelOpen={panelOpen}
-        togglePanel={togglePanel}
+
+      {/* Cursor hint — fades once the user moves the mouse. */}
+      <div className={`hero-hint${ready ? " in" : ""}${moved ? " gone" : ""}`}>
+        move your cursor · click the wordmark
+      </div>
+
+      {/* Loader — fades when the scene reports ready. */}
+      <div className={`hero-loader${ready ? " gone" : ""}`}>initializing</div>
+
+      {/* Bottom-left blurb. */}
+      <HomeBlurb />
+
+      {/* Bottom-center Look console — picker for the scene's materials/colors. */}
+      <LookConsole
         finish={finish}
         bgColorName={bgColorName}
         heroColorName={heroColorName}
         debrisColorName={debrisColorName}
         bgHex={bgHex}
+        heroHex={heroHex}
+        debrisHex={debrisHex}
         onPickFinish={pickFinish}
         onPickBg={pickBg}
         onPickHero={pickHero}
         onPickDebris={pickDebris}
       />
+
+      {/* Bottom-right shipped-work credentials. */}
+      <HomeCredentials />
     </div>
   );
 }

@@ -4,9 +4,7 @@ import { notFound } from "next/navigation";
 import { getPost, getPostSlugs } from "@/lib/blog";
 import { blogPostingSchema } from "@/lib/jsonLd";
 import PageEnter from "@/components/project/PageEnter";
-import ProjectTopbar from "@/components/project/ProjectTopbar";
-import BottomStrip from "@/components/nav/BottomStrip";
-import MobileIndexSheet from "@/components/nav/MobileIndexSheet";
+import Masthead from "@/components/nav/Masthead";
 
 /**
  * Blog post at `/blog/[slug]` — statically generated from the MDX in
@@ -64,7 +62,7 @@ export default async function BlogPost({ params }: { params: Promise<RouteParams
     <div className="project-page">
       {/* BlogPosting structured data — typed from post metadata, no user input. */}
       <script type="application/ld+json">{JSON.stringify(blogPostingSchema(meta, slug))}</script>
-      <ProjectTopbar />
+      <Masthead activeTab="writing" />
 
       <PageEnter>
         <article className="project-page-wrap">
@@ -93,9 +91,6 @@ export default async function BlogPost({ params }: { params: Promise<RouteParams
       </PageEnter>
 
       <footer className="project-page-footer">Mike Vidal · Miami · open to remote</footer>
-
-      <BottomStrip />
-      <MobileIndexSheet />
     </div>
   );
 }
