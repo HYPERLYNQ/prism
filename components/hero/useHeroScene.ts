@@ -301,7 +301,20 @@ export function useHeroScene(
     }
     function onTouchMove(e: TouchEvent): void {
       if (!e.touches[0]) return;
-      setMouse(e.touches[0].clientX, e.touches[0].clientY);
+      // Touch input gets boosted relative to mouse: on mobile your finger can
+      // only traverse ~390px, vs ~1280px+ of cursor travel on desktop. Without
+      // a gain the max parallax swing on mobile is ~30% of desktop's. The
+      // 3.2× factor scales a full-screen swipe to roughly the same camera
+      // sweep as a full-desktop cursor sweep, by amplifying the offset from
+      // the screen center before passing it to setMouse.
+      const TOUCH_GAIN = 3.2;
+      const t = e.touches[0];
+      const cx = 0.5 * window.innerWidth;
+      const cy = 0.5 * window.innerHeight;
+      setMouse(
+        cx + (t.clientX - cx) * TOUCH_GAIN,
+        cy + (t.clientY - cy) * TOUCH_GAIN,
+      );
       flagFirstMove();
     }
     function onResize(): void {
