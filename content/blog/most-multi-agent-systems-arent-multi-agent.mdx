@@ -1,0 +1,185 @@
+export const metadata = {
+  title: "Most 'multi-agent' AI systems aren't multi-agent",
+  description:
+    "Anthropic's engineers have been clear: multi-agent systems exist mainly to spend more tokens on a problem. Most products marketing themselves as multi-agent are multi-stage pipelines with one LLM in a loop. Here's the difference, why it matters, and why my own AI tool is the boring kind.",
+  date: "2026-05-31",
+  tags: ["LLM", "AI agents", "applied AI", "honest framing", "Anthropic"],
+};
+
+Most products marketing themselves as "multi-agent" aren't multi-agent.
+
+They're multi-stage pipelines with one LLM in a loop. Sometimes deterministic
+code wrapping a single classifier. Sometimes a chain of prompts with tool-use.
+None of which is a bad thing — most problems don't need multi-agent. But the
+framing matters, because it changes what a buyer, a recruiter, or an
+engineering manager assumes about how the system works.
+
+I built one of these tools — [Sonar](/work/sonar), a B2B outreach pipeline —
+and I had to fight the urge to call it multi-agent. This post is the
+explanation I owed myself.
+
+## The actual definitions
+
+There are four terms in circulation and they don't mean the same thing.
+
+**Agent** — a single LLM in a loop with tools, deciding its own next action
+based on what the previous tool call returned. The LLM controls the flow.
+That's the load-bearing part: the model decides *what to do next*, not just
+*how to respond*.
+
+**Multi-agent** — multiple such loops coordinating. Usually a supervisor
+agent dispatches sub-agents, or agents pass messages to each other. The
+frameworks people actually use for this are
+[AutoGen](https://github.com/microsoft/autogen),
+[CrewAI](https://github.com/joaomdmoura/crewAI), and LangGraph's multi-node
+graph. The defining trait: more than one autonomous loop, with some
+coordination protocol between them.
+
+**Agentic workflow** — orchestrated control flow with LLMs and tools at
+specific points. The flow itself is deterministic code; the LLM is in the
+loop somewhere, but it doesn't control the flow. This is what most
+production systems actually are.
+
+**Multi-stage pipeline** — deterministic stages chained together. LLM(s)
+called at specific points to do specific jobs (classify, extract, draft).
+The pipeline doesn't loop; the LLM doesn't decide its own next step. This
+is what most "agentic" products actually are, including mine.
+
+Anthropic's engineering team has been blunt about which of these you
+actually need.
+[They've written](https://fountaincity.tech/resources/blog/anthropic-multi-agent-blueprint-production/)
+that multi-agent systems exist mainly to spend more tokens on a problem —
+to throw parallelism at tasks that decompose into independent threads. If
+the task fits in one agent's context, or if the work doesn't decompose, the
+multi-agent version is just more expensive.
+
+## Why people overclaim
+
+The market rewards the bigger word.
+
+"Multi-agent" sells. "AI agents" is a hot keyword on LinkedIn, in pitch
+decks, in job postings. The phrase signals sophistication to people who
+don't know the difference, and most readers — including most recruiters and
+many investors — don't.
+
+So a system gets one Claude call with tool-use and ships as "agentic." A
+system gets two Claude calls in sequence and ships as "multi-agent." A
+system gets five deterministic scrapers, one classifier, and a Telegram
+approval gate, and the founder writes "autonomous multi-agent intent
+monitoring platform" on the landing page.
+
+The honest engineering culture has been pushing back on this for over a
+year. [Simon Willison](https://simonwillison.net/) has been calling out
+overloaded "agent" usage since 2024. Anthropic's own definitions are
+narrower than what most users assume. The LangChain team had to publicly
+clarify that not every "chain" is an "agent." The discourse is correcting,
+but the marketing is still ahead of it.
+
+## A concrete example — Sonar
+
+Here is the actual architecture of [Sonar](/work/sonar), the tool I built
+to monitor B2B intent signals across public channels:
+
+```
+[ scrape ]   5 source-specific scrapers (HTTP + cheerio, deterministic)
+   ↓
+[ classify ] 1 Sonnet 4.6 call — tool-use + structured output + prompt caching
+   ↓
+[ find email ] heuristic + tool-use
+   ↓
+[ draft ]    1 Sonnet call — personalised opener generation
+   ↓
+[ approve ]  human-in-the-loop via Telegram (yes / no / edit)
+   ↓
+[ send ]     Smartlead API
+```
+
+From the outside, this looks multi-agent. Six stages. Five different source
+scrapers. Two distinct LLM jobs (classify and draft). Webhook reply tracking
+on the other end.
+
+It is not multi-agent.
+
+- No LLM call talks to another LLM call. The scrapers hand structured data
+  to the classifier; the classifier hands tagged leads to the drafter; the
+  drafter hands openers to the human gate.
+- No supervisor decides which stage runs. The pipeline executes the stages
+  in order. There is no LLM that picks "what should we do next?" — that
+  decision is hard-coded.
+- Each LLM call is a single classifier or drafter, not an agent in a loop.
+  The classifier gets one lead, returns one structured verdict. It doesn't
+  ponder, doesn't replan, doesn't retry on its own initiative.
+- The only loop is the deterministic Node.js process iterating over
+  unclassified rows in the SQLite database.
+
+What Sonar is, accurately: a **multi-stage LLM pipeline with tool-use,
+structured output, prompt caching, and human-in-the-loop approval.** That's
+a mouthful but it's the truth, and every word in it is doing work.
+
+## When multi-agent *is* the right call
+
+Anthropic's own guidance is the cleanest articulation of when to actually
+reach for multi-agent:
+
+> Use multi-agent when the task is **breadth-first**, the directions are
+> **independent**, the aggregate context **exceeds what a single agent can
+> hold**, and the budget can absorb the cost **multiplier**.
+
+If your task is "search 200 sources in parallel for evidence on a research
+question, then synthesize," that's a real multi-agent case. The sources are
+independent. The aggregate context blows past a single window. Parallel
+agents finish faster. The cost multiplier earns its keep.
+
+If your task is "classify a thousand reviews into seven buckets, then write
+a draft email for each," that is *not* a multi-agent case. The work is
+sequential. The context per item fits in one call. Parallelizing across
+items doesn't need agents — it needs `Promise.all`.
+
+Most production AI products fall on the second side. Most of them should
+stay there.
+
+## Why I built mine the boring way
+
+Building Sonar as a multi-stage pipeline instead of a multi-agent system
+was a series of small wins:
+
+- **Cheaper.** One Sonnet call per lead, with prompt caching across the
+  shared classifier prompt. No supervisor agent paying for the privilege of
+  dispatching.
+- **Faster to debug.** When a draft comes out wrong, I look at one prompt,
+  one response, one stage. Not an agent-to-agent transcript.
+- **Easier to add HITL.** The human approval gate sits between two
+  deterministic stages. There's no autonomous loop to interrupt — the
+  pipeline just pauses at the queue.
+- **Predictable.** I know how many tokens a 1,000-lead run will cost
+  because I know exactly how many LLM calls fire. A multi-agent run on the
+  same data could 10x without warning if a supervisor decides to dispatch
+  more workers.
+- **Honest on the resume.** When a hiring manager asks "walk me through the
+  architecture," I can. The pipeline fits on a whiteboard. The decisions
+  are explicable.
+
+The boring architecture isn't a regret. It's the right tool for the job.
+
+## Why this distinction matters past me
+
+If you're building, you'll save money and shipping time by knowing whether
+your problem actually needs autonomous coordination — and most don't.
+
+If you're hiring, the candidate who says "I built a multi-stage LLM
+pipeline with HITL and tool-use" is being more accurate than the candidate
+who says "I built a multi-agent orchestration platform" — and is almost
+certainly the more rigorous engineer. Architecture vocabulary is one of the
+fastest signals of whether someone understands what they shipped.
+
+If you're reading AI product marketing, "multi-agent" is currently noise.
+Treat it as a fashion word, not an architecture claim. Ask what coordinates
+what. Ask if there's a supervisor. Ask whether removing the orchestration
+would change the output. The answers are usually "nothing," "no," and "no."
+
+## Closing
+
+Most products that claim multi-agent are pipelines with extra steps. Most
+pipelines that genuinely need to be agents would be better as workflows.
+
+Read the architecture, not the headline.
