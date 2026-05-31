@@ -1,0 +1,230 @@
+export const metadata = {
+  title:
+    "Local RAG without the cloud: sqlite-vec, Transformers.js, and one MCP server",
+  description:
+    "Most RAG tutorials route your data through OpenAI's embeddings endpoint and Pinecone. Synaptic does both jobs in a single SQLite file on your machine. Here's the stack, why each piece earned its place, and why hybrid retrieval is the actual interesting part.",
+  date: "2026-05-31",
+  tags: ["RAG", "MCP", "sqlite-vec", "Transformers.js", "local-first", "applied AI"],
+};
+
+Most RAG tutorials route your data through OpenAI's embeddings endpoint
+and Pinecone. They work — and they also leak everything you're searching
+to two SaaS vendors and add two API costs.
+
+[Synaptic](/work/synaptic) — the persistent memory layer I built for
+Claude Code — does both jobs in a single SQLite file. No embeddings API.
+No vector DB. No network call at search time. Just three open-source
+pieces wired together inside a Model Context Protocol server.
+
+This post is the stack: what I picked, why each piece earned its place,
+and why the *retrieval algorithm* is the part that actually matters.
+
+## What "local" actually means here
+
+Three different network calls disappear when RAG runs locally:
+
+1. **Embedding generation.** No POST to `api.openai.com/v1/embeddings`.
+   Vectors are computed in-process via Transformers.js.
+2. **Vector storage and search.** No Pinecone, no Weaviate, no Qdrant
+   service. Vectors live in the same SQLite file as the rest of your
+   data, queried with a single SQL extension.
+3. **Keyword index.** No Elasticsearch. SQLite's built-in FTS5 ships
+   with BM25 ranking and Porter stemming.
+
+The only LLM call left is the one your agent makes after retrieval — the
+"generate" half of RAG. The "retrieval" half is fully on-device. For a
+memory layer that reads your codebase, your decisions, and your private
+project state, local-only isn't a nice-to-have. It's the only
+defensible posture.
+
+## The four pieces
+
+### sqlite-vec — vectors inside SQLite
+
+Most vector databases run as a separate process. Pinecone is a SaaS.
+Qdrant and Weaviate are services you deploy. Even FAISS lives in its own
+file format.
+
+[sqlite-vec](https://github.com/asg017/sqlite-vec) is a SQLite extension
+that adds vector storage and similarity search as native SQL. Your
+vectors live in a table next to your text. One file, one connection, one
+backup target.
+
+```sql
+CREATE VIRTUAL TABLE memory_vectors USING vec0(
+  embedding float[384]
+);
+
+INSERT INTO memory_vectors(rowid, embedding)
+VALUES (?, ?);
+
+SELECT rowid, distance
+FROM memory_vectors
+WHERE embedding MATCH ?
+ORDER BY distance
+LIMIT 10;
+```
+
+That's the whole API surface. No client library, no network protocol, no
+schema service to manage. The operational footprint is "one more file."
+
+The tradeoff: sqlite-vec is alpha software (currently 0.1.7). It works,
+the maintainer ships, and the indexing is fast enough for a single-user
+memory layer. But "alpha" means you'd want a backup and a rebuild script
+before betting a multi-tenant production system on it. For local memory
+on a developer's machine, that's a price worth paying.
+
+### Transformers.js — embeddings in pure Node
+
+[Transformers.js](https://huggingface.co/docs/transformers.js) is
+Hugging Face's port of the transformers library to JavaScript. It runs
+ONNX models via `onnxruntime-node` — no Python process, no CUDA
+required, no API call.
+
+Synaptic uses a 384-dimension embedding model. First call after process
+start loads the model (a few hundred milliseconds). Every subsequent
+embedding is a few milliseconds. For a developer who runs maybe 50–200
+searches a day, that latency is invisible.
+
+The tradeoff: model load is the first-call cost. If you spin up
+Transformers.js cold for every request (serverless function pattern), it
+hurts. For a long-running MCP server that loads once and stays warm,
+it's free.
+
+### SQLite FTS5 — BM25 keyword search, included
+
+FTS5 has been part of SQLite since 2015. It includes BM25 ranking by
+default. It supports Porter stemming so *"running"* and *"runs"* both
+match *"run"*. You enable it with one virtual table.
+
+```sql
+CREATE VIRTUAL TABLE memory_fts USING fts5(
+  content,
+  tokenize='porter unicode61'
+);
+```
+
+I considered Meilisearch and Typesense — both excellent, both
+overkill for a single-process memory layer. FTS5 is already in the
+binary. Using it adds zero dependencies.
+
+### Model Context Protocol — the agent interface
+
+The fourth piece isn't search infrastructure. It's how the *agent*
+talks to it.
+
+[MCP](https://modelcontextprotocol.io/) is Anthropic's open protocol
+for connecting LLM agents to external tools. Synaptic exposes its
+retrieval as MCP tools: `context_save`, `context_search`,
+`context_session`. Claude Code invokes them as tool calls, not by
+stuffing context into prompts.
+
+This matters more than it sounds. Prompt-stuffing RAG always leaves the
+model uncertain about *when* to use the retrieved context — it just sits
+there in the prompt. MCP makes retrieval a *decision the model makes
+explicitly.* When the model needs prior context, it calls
+`context_search`. When it learns something worth remembering, it calls
+`context_save`. The pattern is closer to "tool use" than to "RAG" as
+the term is usually used, and the resulting behavior is sharper.
+
+## The actual interesting part — hybrid retrieval
+
+Here's what most "local RAG" posts skip: just throwing semantic vectors
+at a query is *worse* than keyword search for a lot of developer
+queries.
+
+Try searching your codebase for `getUserById`. A semantic embedding
+will rank a paragraph about "the user fetching function" near the top.
+But it'll miss the actual function definition because semantic vectors
+don't distinguish between *"the function that gets a user by id"* and
+*the literal string `getUserById`*.
+
+Try the opposite: a BM25 keyword search for *"how do we handle auth?"*.
+You'll get every file that contains the word "auth," which is everything
+and nothing. The query is conceptual; keyword search has no concepts.
+
+You want both. The textbook way to combine them is
+**Reciprocal Rank Fusion** (RRF):
+
+```
+combined_score(item) = sum over each ranker:
+    1 / (k + rank_in_that_ranker(item))
+```
+
+Each retrieval method (BM25, vector) ranks the candidates. RRF combines
+those ranks rather than the raw scores — which is important because
+BM25 and cosine-similarity produce scores on totally different scales
+and naive sum or average over them is nonsense.
+
+Synaptic goes further. It uses **multi-pass concept fusion**: queries
+are broken into individual concepts, each is expanded with
+edit-distance-1 fuzzy deletions for typo tolerance, multiple BM25 passes
+run per concept, then the whole stack is fused with vector similarity
+via RRF.
+
+What you get:
+
+- Typing *"fevr project"* still finds *"fever"* entries
+- Searching *"email provider"* finds entries about
+  *"Cloudflare Email Routing"* even when those exact words were never
+  used
+- Searching for `getUserById` finds the actual function before it finds
+  the paragraph describing it
+
+The retrieval algorithm is the load-bearing part of any RAG system, and
+"vector search + BM25" without thoughtful fusion is the wrong default.
+RRF is the easy win.
+
+## What I'd warn you about
+
+Five things, honestly:
+
+- **sqlite-vec is alpha.** Have a backup. Have a rebuild script. The
+  schema may change before v1.
+- **Transformers.js first-call latency is real.** Plan for a warm
+  process. Don't run it inside a Lambda.
+- **The 384-dim embeddings are small.** Good enough for short text
+  snippets. If you're embedding 10,000-word documents, you'll want
+  bigger embeddings (768 or 1024 dim) and a better model.
+- **SQLite is single-writer.** Concurrent writes serialize. Fine for a
+  single-user memory layer; not fine for a multi-tenant service.
+- **You still need the LLM for generation.** Local RAG removes the
+  retrieval API costs. The generation call still goes to whichever
+  provider you're using.
+
+If those tradeoffs are acceptable — and for a developer's persistent
+memory layer they are — the local stack is operationally simpler than
+any of the cloud options and gives up almost nothing on quality.
+
+## Why this combination, and not the obvious alternatives
+
+The obvious alternatives:
+
+- **LangChain + Pinecone.** Standard. Works. Two SaaS vendors and a
+  lock-in to LangChain's abstractions.
+- **LlamaIndex + Chroma.** Lighter. Chroma can run locally as a service.
+  Still two processes, still a Python dependency.
+- **Roll your own with pgvector.** Solid for serious production. But
+  Postgres is an operational footprint a memory tool doesn't need.
+
+Synaptic's stack — sqlite-vec + Transformers.js + FTS5 + MCP — is
+*one Node process*, *four dependencies in package.json*, *one SQLite
+file on disk*. The whole thing is auditable in an afternoon. For a
+local memory layer that has to be invisible operationally, that
+simplicity is the feature.
+
+## The takeaway
+
+You can do RAG without the cloud. The technology has been ready for
+about two years now, the operational story is simpler than the SaaS
+version, and the retrieval algorithm — RRF over BM25 plus a local
+embedding model — is the part that actually makes the difference. The
+vendors are optional.
+
+Look at the algorithm, not the stack.
+
+---
+
+If you want to read the code, [Synaptic is on
+GitHub](https://github.com/HYPERLYNQ/synaptic). The retrieval lives in
+`src/storage/` and the MCP tools live in `src/tools/`.
