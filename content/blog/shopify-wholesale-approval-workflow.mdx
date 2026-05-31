@@ -1,0 +1,218 @@
+export const metadata = {
+  title:
+    "The customer approval workflow most Shopify wholesale apps get wrong",
+  description:
+    "Every Shopify wholesale app has a customer approval feature. Almost none have a good one. Six things merchants actually need that most apps don't ship — with receipts from the real reviews and forum posts.",
+  date: "2026-05-31",
+  tags: ["Shopify", "B2B", "wholesale", "UX", "product"],
+};
+
+The wholesale customer approval workflow is the most-broken UX surface
+in the entire Shopify B2B app ecosystem.
+
+Every wholesale app ships an approval feature. They all let merchants
+collect a registration form, queue applications, and tag the customer
+once approved. They almost all stop there — and "stop there" is where
+the actual operational reality of running a wholesale business begins.
+
+I [wrote about six failure patterns](/blog/wholesale-harmony-vs-wholesale-gorilla-bss-b2b)
+across the category last week. Approval is the one I want to go deep on,
+because it's both the most common merchant complaint *and* the most
+fixable.
+
+## What a "good" approval workflow has to do
+
+For a wholesale merchant, an approval workflow does six jobs. Most apps
+ship the first two and forget the rest.
+
+### 1. Collect the application
+
+Form on the storefront. Custom fields per business type. License
+number, tax ID, business documents uploaded. Auto-tag the customer
+record on submit. Every wholesale app does this — it's the table stakes
+job.
+
+The variation is in field validation. Real merchants have learned to
+ask for a license number with a regex check, a tax ID with state
+matching, and a "describe your business in one sentence" field that
+filters out fraudulent applications faster than a yes/no checkbox.
+
+### 2. Queue the application for review
+
+Show a list of pending applications in the admin. Most apps do this
+too. The bad ones show it as an unsorted list with no filtering. The
+good ones let the merchant sort by submission date, filter by business
+type, and see at-a-glance whether each application has the documents
+attached.
+
+This is where most wholesale apps stop. The next four jobs are where
+they fall down.
+
+### 3. Surface the *reasons to reject*, not just the data
+
+Here's a real review from the
+[Wholesale Gorilla App Store page](https://apps.shopify.com/wholesale-gorilla):
+
+> *"We have hundreds of applicants that lie and make up their own
+> 'business' that we have to review... I have to add in 10 extra steps
+> when all it took was an email and one link before."* — Art by Amy Labbe (★3)
+
+The merchant is doing fraud screening by hand because the app doesn't
+help. A good approval queue would surface fraud signals automatically:
+
+- Does the business name resolve to a real domain that's not the email
+  domain?
+- Is the IP from a country the merchant doesn't ship to?
+- Does the email exist on a public domain (gmail.com) when a business
+  email was claimed?
+- Has anyone with this email or name been previously rejected?
+
+None of this is hard to wire. Most wholesale apps don't bother.
+
+### 4. Track the customer's *state*, not just the tag
+
+When a wholesale customer is "approved," what does that actually mean?
+In most apps it means a single tag (`wholesale-approved`) gets added.
+That's not enough state for the actual business.
+
+A real wholesale relationship has more states:
+
+- **Application pending** — customer can browse but can't see wholesale
+  pricing or check out at wholesale tiers
+- **Approved, never ordered** — onboarded but hasn't transacted
+- **Active** — has placed at least one order in the last 90 days
+- **Dormant** — hasn't ordered in 6+ months; might need re-engagement
+- **Suspended** — past-due payments or violated terms; can browse but
+  can't check out
+- **Terminated** — relationship ended; data retained for compliance
+
+A single tag flattens all six into one. The merchant ends up tracking
+the rest in a spreadsheet.
+
+### 5. Tell the customer something
+
+The single biggest complaint I've seen across reviews and forum posts:
+the customer applies, then *hears nothing*. From an
+[r/shopify thread](https://www.reddit.com/r/shopify/):
+
+> *"Customers cannot see wholesale pricing. Lost customers over it."* —
+> Da Bomb! Bath Co (Wholesale Gorilla, ★2)
+
+This is partly a pricing-display bug, but it's also an approval
+communication bug. The customer doesn't know whether they're approved.
+Whether they're under review. Whether they need to send more
+information. Whether they're rejected.
+
+A working approval workflow sends transactional emails on every state
+change:
+
+- Application received (with expected review window)
+- Information needed (with the specific missing fields)
+- Approved (with what they can now do — wholesale catalog link, terms
+  doc, account manager contact)
+- Rejected (with the reason, even if it's terse, so they know whether
+  to reapply)
+- Approved but on hold (e.g., pending document expiry)
+
+Three of the four major wholesale apps ship one email — "you're
+approved." None of them ship the full set.
+
+### 6. Carry the documents forward
+
+The merchant approved the customer on a 2025 reseller certificate.
+2026 rolls around. The cert has expired. The merchant has no idea.
+
+From the [Shopify Community
+forum](https://community.shopify.com/):
+
+> *"Validating name/TIN/state match (and catching incomplete/expired
+> certs)... Renewal reminders (so certs don't lapse)... Storing
+> everything in one place for audit exports."* — r/shopify thread on
+> reseller tax certs
+
+This is the operational reality nobody talks about. Wholesale
+relationships involve documents (tax certs, licenses, NDAs, supply
+agreements) that *expire*. A good approval workflow tracks document
+expiry on the customer record, sends renewal reminders 30 days before
+expiry, suspends the customer's wholesale access if a cert lapses, and
+keeps an audit-exportable history for the merchant's accountant.
+
+Almost no Shopify wholesale app does this. Most don't even surface
+"when did this customer's tax cert expire?" as a field.
+
+## What Wholesale Harmony does — honestly
+
+I built [Wholesale Harmony](/work/wholesale-harmony) to take the
+approval workflow seriously. Specifically:
+
+- **Custom registration forms with field-level validation.** License
+  number with regex, tax ID with state matching, file uploads for
+  business documents. The form does the first pass of vetting before
+  the merchant ever sees the application.
+- **Clean approval dashboard with the submitted fields visible
+  side-by-side.** Approve or reject with one click. Optional rejection
+  reason captured for the email.
+- **Transactional emails on state change.** Received, approved,
+  rejected — each with the right context. Pending and dormant emails
+  are roadmap, not shipped yet.
+- **Tag-based pricing visibility enforced by Shopify Functions.** Once
+  the customer is approved and tagged, they see wholesale prices.
+  Unapproved customers see retail and can't check out at the wholesale
+  tier even if they craft the URL — enforced at the platform layer,
+  not in client-side Liquid.
+
+What WH does **not** do today, and I'd rather you know now:
+
+- **No fraud-signal scoring on submitted applications.** Items 3 above
+  is a gap. Roadmap, not shipped. If your wholesale gets hundreds of
+  fraudulent applications a week, WH alone isn't enough — you'd want
+  it paired with something like a registration captcha and a manual
+  review cadence.
+- **No expiry tracking on reseller certs or other documents.** Item 6
+  above is a gap. The form collects the doc; we don't track when it
+  expires.
+- **No multi-state customer model.** Currently a customer is approved
+  or not approved. The other four states from item 4 — active, dormant,
+  suspended, terminated — aren't modeled yet. You can simulate them
+  with tags, but the dashboard doesn't surface them.
+
+If the gaps above are blocking, WH is not the right primary tool for
+you and I'd rather say so now. If the gaps are acceptable, what WH
+does well it does well — and the parts that work are the parts most
+merchants actually use day-to-day.
+
+## What to look for in any wholesale app
+
+If you're evaluating apps, ask the vendor *specifically*:
+
+1. Can the registration form validate fields (regex, file type, file
+   size) before submission?
+2. Does the approval queue let me sort, filter, and bulk-action?
+3. Are there signals that help me identify fraudulent applications
+   (domain checks, duplicate email detection)?
+4. Does the customer get an email on every state change, with
+   actionable content (not just "approved")?
+5. Is the customer's wholesale state more granular than one tag?
+6. Does the app track document expiry and send renewal reminders?
+
+A good wholesale app should be able to answer "yes, mostly, working on
+it" to most of these. A bad one will give you a feature page that
+implies yes but doesn't actually do any of it. That delta is most of
+what the negative reviews are warning about.
+
+## The takeaway
+
+Approval is a feature most wholesale apps ship as a checkbox: "yes, we
+have approval workflows." The merchants who installed those apps tell a
+different story in the 1-star reviews. The difference between "we have
+an approval feature" and "our approval workflow handles the actual
+business" is six jobs — and most apps stop after the first two.
+
+If you're a merchant evaluating apps: ask hard about jobs 3–6 before
+you install. If you're building an app: ship more than the first two.
+
+---
+
+This is the fifth post in a slate I wrote about the Shopify wholesale
+app landscape — see also
+[the six failure patterns across the category](/blog/wholesale-harmony-vs-wholesale-gorilla-bss-b2b).
