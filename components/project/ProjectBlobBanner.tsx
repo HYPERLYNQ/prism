@@ -64,12 +64,38 @@ export default function ProjectBlobBanner({ slug: _slug }: ProjectBlobBannerProp
     canvas.style.cssText = "position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none;";
     container.appendChild(canvas);
 
-    const renderer = new THREE.WebGLRenderer({
-      canvas,
-      antialias: true,
-      alpha: true,
-      powerPreference: "high-performance",
-    });
+    // Hardened WebGL init — mirrors useHeroScene.ts:106-145.
+    //
+    // We deliberately do NOT pass `powerPreference: "high-performance"`. That
+    // flag asks the browser for the discrete GPU; Chrome on Apple Silicon
+    // Macs running macOS Tahoe 26.1+ refuses the request (no dGPU exists on
+    // M-series chips) and the WebGLRenderer constructor throws. Without a
+    // try/catch the prior code orphaned the appended canvas and left the
+    // project hero with a flat accent gradient and no recovery — which is
+    // exactly the production symptom reported 2026-06-06 ("the 3d animation
+    // on the projects tabs isn't loading correctly").
+    //
+    // If the constructor still fails (locked-down browsers, blocklisted
+    // GPUs, software rendering disabled), we log diagnostics and clean up the
+    // orphan canvas so the CSS gradient banner stands alone as the fallback.
+    let renderer: THREE.WebGLRenderer;
+    try {
+      renderer = new THREE.WebGLRenderer({
+        canvas,
+        antialias: true,
+        alpha: true,
+      });
+    } catch (err) {
+      const ua = typeof navigator !== "undefined" ? navigator.userAgent : "n/a";
+      console.error(
+        `[ProjectBlobBanner] WebGL renderer init failed — flat banner only.\n` +
+          `  three.js: r${THREE.REVISION}\n` +
+          `  userAgent: ${ua}\n` +
+          `  error: ${err instanceof Error ? (err.stack ?? err.message) : String(err)}`,
+      );
+      if (canvas.parentNode) canvas.parentNode.removeChild(canvas);
+      return;
+    }
     renderer.setClearColor(0x000000, 0);
     // Cap pixel ratio at 2 on both mobile and desktop. The blob's glossy,
     // high-frequency reflections show aliasing badly at low DPR — 1.5 on phones
@@ -370,7 +396,14 @@ export default function ProjectBlobBanner({ slug: _slug }: ProjectBlobBannerProp
       // delta + elapsed (Clock used to do this implicitly inside getElapsedTime).
       timer.update();
       const t = timer.getElapsed();
-      const introT = Math.min(1, t / INTRO_DUR);
+      // Reduced-motion: skip the converge intro (start fully merged) and the
+      // per-frame mesh drift. Keep the slow rotation (env reflections still
+      // glint subtly) and the field morph but at a fully-converged stance.
+      // This matches the home hero's "quiet but alive" pattern (see
+      // useHeroScene.ts:396-413). The earlier behavior froze the blob on one
+      // frame, which read as broken to viewers who didn't realise macOS
+      // Reduce Motion was on.
+      const introT = reducedMotion ? 1 : Math.min(1, t / INTRO_DUR);
       // Smoothstep convergence — slow at the start (droplets hang apart), fast
       // through the middle (they rush together), settling gently at the end.
       const converge = introT * introT * (3 - 2 * introT);
@@ -378,14 +411,16 @@ export default function ProjectBlobBanner({ slug: _slug }: ProjectBlobBannerProp
         updateBalls(t, converge);
         lastMcUpdate = t;
       }
-      updateMeshPosition(t);
+      if (!reducedMotion) updateMeshPosition(t);
       // Scale eases to full a touch ahead of convergence so the droplets are
       // visible at near-full size as they merge (ease-out-cubic). responsiveScale
       // shrinks the blob on narrow banners so it never overruns the frame.
-      const scaleEase = 1 - Math.pow(1 - introT, 3);
+      const scaleEase = reducedMotion ? 1 : 1 - Math.pow(1 - introT, 3);
       mcubes.scale.setScalar(responsiveScale * scaleEase);
-      // Slow rotation drifts env reflections across the surface.
-      mcubes.rotation.y = t * 0.08;
+      // Slow rotation drifts env reflections across the surface. Half-speed
+      // under reduced motion so the surface still glints without ambushing
+      // accessibility users with constant motion.
+      mcubes.rotation.y = t * (reducedMotion ? 0.04 : 0.08);
       renderer.render(scene, camera);
     };
 
@@ -401,7 +436,10 @@ export default function ProjectBlobBanner({ slug: _slug }: ProjectBlobBannerProp
     // next `update()` produces a ~0 delta and the morph continues from where
     // it paused.
     const sync = () => {
-      if (reducedMotion) return;
+      // Reduced-motion users get the loop too — animate() runs a quieter mix
+      // (no intro, no drift, half-speed rotation) instead of freezing on one
+      // frame. The IntersectionObserver still gates rAF on visibility for
+      // everyone, so scrolled-away banners pause for power savings.
       if (onScreen && !looping) {
         looping = true;
         // Avoid a delta-jump on resume: `reset()` advances Timer's internal
@@ -416,14 +454,9 @@ export default function ProjectBlobBanner({ slug: _slug }: ProjectBlobBannerProp
       }
     };
 
-    if (reducedMotion) {
-      updateBalls(0, 1); // fully merged, no coalescence
-      updateMeshPosition(0);
-      mcubes.scale.setScalar(responsiveScale); // skip intro animation
-      renderer.render(scene, camera);
-    } else {
-      sync();
-    }
+    // Loop kickstart for everyone. animate() picks the right motion mix based
+    // on reducedMotion; sync() starts/stops based on IntersectionObserver.
+    sync();
 
     const io = new IntersectionObserver(
       ([entry]) => {
