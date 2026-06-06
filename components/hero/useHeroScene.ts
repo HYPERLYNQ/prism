@@ -417,19 +417,41 @@ export function useHeroScene(
       camera.position.set(0, 0, baseZ);
     }
 
-    new FontLoader().load("/fonts/helvetiker_bold.typeface.json", (loaded) => {
-      if (disposed) return;
-      font = loaded;
-      for (const text of PHRASES) phraseLetterMeshes.push(buildPhrase(text, font, heroMaterial));
-      // Pre-sample every phrase's particle layout once — deterministic per
-      // phrase, so caching here removes the sampling spike from each transition.
-      for (const meshes of phraseLetterMeshes) {
-        phraseSamples.push(samplePhrase(meshes, particles.count));
-      }
-      attachPhraseToRoot(wordRoot, phraseLetterMeshes[phraseIndex], heroMaterial);
-      sceneReady = true;
-      onReady();
-    });
+    // FontLoader signature: (url, onLoad, onProgress, onError). Without an
+    // onError, a network failure (content blocker, deploy mishap) would
+    // never resolve onReady() and the "initializing" loader would stay up
+    // forever. Route font failures into the same DOM-fallback path as a
+    // WebGL failure — the static hero is a better last-resort than a
+    // permanently-loading state. The third arg (onProgress) is unused.
+    new FontLoader().load(
+      "/fonts/helvetiker_bold.typeface.json",
+      (loaded) => {
+        if (disposed) return;
+        font = loaded;
+        for (const text of PHRASES) phraseLetterMeshes.push(buildPhrase(text, font, heroMaterial));
+        // Pre-sample every phrase's particle layout once — deterministic per
+        // phrase, so caching here removes the sampling spike from each transition.
+        for (const meshes of phraseLetterMeshes) {
+          phraseSamples.push(samplePhrase(meshes, particles.count));
+        }
+        attachPhraseToRoot(wordRoot, phraseLetterMeshes[phraseIndex], heroMaterial);
+        sceneReady = true;
+        onReady();
+      },
+      undefined,
+      (err) => {
+        if (disposed) return;
+        const ua =
+          typeof navigator !== "undefined" ? navigator.userAgent : "n/a";
+        console.error(
+          `[useHeroScene] FontLoader failed — showing static fallback.\n` +
+            `  url: /fonts/helvetiker_bold.typeface.json\n` +
+            `  userAgent: ${ua}\n` +
+            `  error: ${err instanceof Error ? (err.stack ?? err.message) : String(err)}`,
+        );
+        onError();
+      },
+    );
 
     /* ── animation loop ────────────────────────────────────────── */
     function animate(): void {
