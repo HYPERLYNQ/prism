@@ -373,13 +373,21 @@ body {
  * give the banner depth without recycling the home page's 3-D debris cloud. */
 .project-hero-banner {
   position: relative;
-  background: linear-gradient(135deg, var(--banner-accent) 0%, var(--banner-accent-deep) 100%);
-  /* Banner text is white on every accent — the white-on-colour look is the
-   * intended brand treatment (reverted from the per-accent dark-ink contrast
-   * fix). Note: white-on-accent measures below WCAG AA on the light accents
-   * (chartreuse 2.59, gold-leaf 2.55, burnt-orange 3.45); if AA is needed later,
-   * fix it without changing the text colour (darken the gradient stops or add a
-   * subtle dark scrim behind the text) rather than switching to dark type. */
+  /* Two-layer background. Bottom layer is the per-project accent gradient
+   * (diagonal 135° as before). Top layer is a full-banner dark gradient
+   * that ramps gently from transparent at the top edge to ~32% black at
+   * the bottom edge — this lifts the white text contrast on the light
+   * accents (chartreuse, gold-leaf, burnt-orange) toward WCAG AA without
+   * the visible "knee" the earlier 0%→30%-transparent scrim produced.
+   * Because the dark gradient covers 0–100% of the banner height, there's
+   * no perceptible transition line — it reads as a unified darker pool
+   * around the title and tagline, blending into the accent gradient. */
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.32) 100%),
+    linear-gradient(135deg, var(--banner-accent) 0%, var(--banner-accent-deep) 100%);
+  /* White on every accent — the intended brand treatment. The dark
+   * gradient layer above carries the contrast lift; the colour itself
+   * never changes per accent. */
   color: #ffffff;
   overflow: hidden;
   isolation: isolate; /* stacks the mesh's blend-modes below the title */
@@ -397,21 +405,7 @@ body {
   padding: 80px 36px 88px;
   min-height: 300px;
 }
-/* WCAG AA scrim. White text over the light accents (chartreuse 2.59,
- * gold-leaf 2.55, burnt-orange 3.45) was failing AA's 4.5:1 floor; the
- * inline comment above explicitly preferred preserving white text and
- * adding a subtle dark scrim instead of switching to dark type. This
- * gradient is invisible at the banner's top and softens to a ~32% dark
- * pool where the title and tagline sit, lifting the effective contrast
- * past AA on every accent without altering the brand colour reading. */
-.project-hero-banner-inner::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, transparent 30%, rgba(0, 0, 0, 0.32) 100%);
-  pointer-events: none;
-}
-.project-hero-banner-text { position: relative; z-index: 1; }
+.project-hero-banner-text { position: relative; }
 .project-hero-banner-eyebrow {
   font: 500 10px/1.2 var(--font-mono), monospace;
   letter-spacing: 0.22em;
