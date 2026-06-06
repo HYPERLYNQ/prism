@@ -2379,31 +2379,107 @@ body.dark .look-console-panel {
   transition: opacity 0.22s ease, transform 0.22s ease;
 }
 
-/* Mobile — full-width bottom sheet, panel rises from bottom edge instead. */
+/* Mobile — full-width bottom sheet, panel rises from bottom edge instead.
+ *
+ * Critical containing-block fix: at desktop sizes .look-console uses
+ * `transform: translateX(-50%)` to centre the pill, and a CSS transform on
+ * an ancestor creates a new containing block for descendant
+ * `position: fixed` elements. That meant the panel's `position: fixed`
+ * was actually relative to .look-console, NOT the viewport, so the
+ * bottom-sheet never reached the screen edges and the picker ended up
+ * cut off / forcing internal scroll on phones.
+ *
+ * On mobile we drop the transform entirely, span the wrapper edge-to-edge,
+ * and centre the pill via flex inside that wrapper. Now the panel's
+ * `position: fixed` resolves against the viewport as intended. The
+ * explicit `top: auto` mirrors the same defence we added to the masthead
+ * sheet against iOS Safari's position-resolver falling back to top: 0
+ * when only bottom is set. */
 @media (max-width: 600px) {
   .look-console {
     bottom: 16px;
-    /* Keep the pill compact even on phones */
+    left: 0;
+    right: 0;
+    transform: none;
+    max-width: none;
+    display: flex;
+    justify-content: center;
   }
   .look-console-panel {
     position: fixed;
+    top: auto;
     bottom: 0;
     left: 0;
     right: 0;
+    /* Closed: pushed below the viewport. Open: 0. */
     transform: translateY(100%);
     z-index: 6;
     width: auto;
     max-width: none;
+    /* Cap the sheet's height so it never covers the whole screen; the
+     * picker's content fits well under this on common phones, but if a
+     * very short viewport pushes anything past, internal scroll handles
+     * it cleanly. */
     max-height: calc(100dvh - 48px);
     overflow-y: auto;
-    padding: 20px 22px calc(22px + env(safe-area-inset-bottom, 0));
+    /* Tighter padding so the four sections (FINISH + BG + HERO + DEBRIS)
+     * fit without forcing a scroll on common phone heights. */
+    padding: 16px 18px calc(18px + env(safe-area-inset-bottom, 0px));
     border: none;
     border-top: 1px solid var(--hair);
     background: var(--bg);
+    -webkit-backdrop-filter: none;
     backdrop-filter: none;
+    /* Native iOS rubber-band scroll inside the sheet. */
+    -webkit-overflow-scrolling: touch;
+    /* Trap touch scroll inside the sheet so the page behind it doesn't
+     * also scroll when the user drags. */
+    overscroll-behavior: contain;
   }
   .look-console.is-open .look-console-panel {
     transform: translateY(0);
+  }
+  /* Compact the inside of the panel: smaller row gaps, tighter swatch
+   * grids, and a section-divider style that doesn't waste vertical room. */
+  .look-console-panel .lp-row + .lp-row {
+    margin-top: 10px;
+    padding-top: 10px;
+  }
+  .look-console-panel .lp-row {
+    gap: 6px;
+  }
+  .look-console-panel .lp-lbl {
+    font-size: 9.5px;
+    margin-bottom: 2px;
+  }
+  /* Swatch grid: 5 swatches across × 2 rows = the 10 swatches per section,
+   * fluid-sized so they fill the panel evenly on every phone width without
+   * forcing a horizontal overflow at the page level. aspect-ratio: 1 keeps
+   * each swatch circular regardless of column width. Max-width caps the
+   * actual tap target so a foldable or large phone doesn't stretch the
+   * dots into rugby balls. */
+  .look-console-panel .lp-sw {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+  }
+  .look-console-panel .sw {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1;
+    max-width: 44px;
+    justify-self: center;
+  }
+  /* Finishes: 4 across × 2 rows = the 7 finishes (last row half-empty),
+   * with ≥44px tall per chip per WCAG. */
+  .look-console-panel .lp-chips {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  .look-console-panel .mb {
+    min-height: 44px;
+    padding: 10px 6px;
+    text-align: center;
   }
 }
 
