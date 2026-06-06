@@ -33,7 +33,11 @@
    * as a designed editorial system rather than a default Tailwind reset. */
   --ink: #0A0E14;
   --ink-2: rgba(10, 14, 20, 0.64);
-  --ink-3: rgba(10, 14, 20, 0.42);
+  /* --ink-3 was 0.42, which lands at ~2.9:1 against --bg (#FAFAF7) — below
+   * WCAG AA's 4.5:1 floor for normal text. Bumped to 0.62 (~5:1) because
+   * --ink-3 is used on functional content (breadcrumbs, resume section
+   * labels, list dates/tags, masthead role/meta) not just decoration. */
+  --ink-3: rgba(10, 14, 20, 0.62);
   --hair: rgba(10, 14, 20, 0.14);
   --bg: #FAFAF7;
   --bg-deep: #F0EFE8;
@@ -63,7 +67,8 @@ body.dark {
    * the cool-ink background than a clinical #ffffff. */
   --ink: #F4F2EC;
   --ink-2: rgba(244, 242, 236, 0.66);
-  --ink-3: rgba(244, 242, 236, 0.42);
+  /* Same WCAG bump as the light theme (0.42 → 0.62). */
+  --ink-3: rgba(244, 242, 236, 0.62);
   --hair: rgba(244, 242, 236, 0.16);
 }
 
@@ -79,7 +84,57 @@ body {
   color: var(--ink);
   font-family: var(--font-mono), ui-monospace, monospace;
   -webkit-font-smoothing: antialiased;
+  /* iOS Safari taps flash a blue translucent overlay by default; resetting
+   * it lets our own :active / :focus-visible styles carry the feedback
+   * without clashing with the editorial palette. */
+  -webkit-tap-highlight-color: transparent;
   transition: background 0.5s ease;
+}
+
+/* Global keyboard-focus ring. Applies to every standard interactive element
+ * unless that element opts out with its own :focus-visible rule (the
+ * masthead tabs do, with a bespoke underline replacement). Using :where()
+ * keeps specificity at 0 so component-level overrides still win. */
+:where(
+  a,
+  button,
+  [role="button"],
+  [role="menuitem"],
+  input,
+  select,
+  textarea,
+  summary,
+  [tabindex]:not([tabindex="-1"])
+):focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+/* Skip-to-content link — visually hidden until focused via keyboard.
+ * Rendered at the top of <body> in app/layout.tsx; the visible appearance
+ * activates when a keyboard user tabs into the page. */
+.skip-link {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 100;
+  padding: 10px 14px;
+  background: var(--ink);
+  color: var(--bg);
+  font: 500 12px/1 var(--font-mono), monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  border-radius: 4px;
+  transform: translateY(-150%);
+  transition: transform 0.18s ease;
+}
+.skip-link:focus,
+.skip-link:focus-visible {
+  transform: translateY(0);
+  outline: 2px solid var(--bg);
+  outline-offset: 2px;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -201,7 +256,11 @@ body {
   color: var(--sw, transparent);
   transition: transform 0.15s, box-shadow 0.2s;
 }
-.sw:hover { transform: scale(1.18); }
+/* Hover effects on hover-capable pointers only — on touch devices the
+ * unguarded `:hover` would stick after a tap and read as a broken state. */
+@media (hover: hover) and (pointer: fine) {
+  .sw:hover { transform: scale(1.18); }
+}
 .sw[aria-pressed="true"] {
   box-shadow: 0 0 0 2px var(--bg), 0 0 0 3.5px var(--ink);
   transform: scale(1.1);
@@ -267,20 +326,23 @@ body {
 /* Mobile picker tweaks — bigger swatch tap targets on touch widths. The
  * picker panel itself collapses to a full-width bottom sheet on small phones
  * (see `.look-console-panel @media (max-width: 600px)` further down). */
+/* Tap-target bumps. WCAG 2.2 AA's minimum target size is 24×24 CSS px (with
+ * 24px spacing or 44×44 in isolation); we go straight to the 28/36/44 ladder
+ * so the picker is comfortably tappable on every phone size. */
 @media (max-width: 820px) {
-  .lp-sw { grid-template-columns: repeat(7, 20px); gap: 8px; }
-  .sw { width: 20px; height: 20px; }
+  .lp-sw { grid-template-columns: repeat(7, 28px); gap: 10px; }
+  .sw { width: 28px; height: 28px; }
 }
 @media (max-width: 600px) {
   .lp-row { flex-direction: column; gap: 8px; align-items: flex-start; }
   .lp-row + .lp-row { margin-top: 14px; padding-top: 14px; }
   .lp-lbl { width: auto; flex: 0 0 auto; padding-top: 0; }
-  .lp-sw { grid-template-columns: repeat(7, 28px); gap: 10px; }
-  .sw { width: 28px; height: 28px; }
-  .mb { padding: 8px 12px; font-size: 10px; }
+  .lp-sw { grid-template-columns: repeat(7, 36px); gap: 12px; }
+  .sw { width: 36px; height: 36px; }
+  .mb { padding: 10px 14px; font-size: 10px; min-height: 44px; }
 }
 @media (max-width: 480px) {
-  .lp-sw { grid-template-columns: repeat(6, 28px); }
+  .lp-sw { grid-template-columns: repeat(6, 36px); }
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -291,7 +353,10 @@ body {
  * leaves room for the fixed BottomStrip (~56px on desktop) plus the mobile
  * bar (~52px) — see overrides in the media queries below. */
 .project-page {
+  /* 100vh fallback first for non-supporting agents; 100dvh ensures the
+   * page tracks iOS Safari's URL-bar transitions without ~60px overflow. */
   min-height: 100vh;
+  min-height: 100dvh;
   background: var(--bg);
   color: var(--ink);
   display: flex;
@@ -332,7 +397,21 @@ body {
   padding: 80px 36px 88px;
   min-height: 300px;
 }
-.project-hero-banner-text { position: relative; }
+/* WCAG AA scrim. White text over the light accents (chartreuse 2.59,
+ * gold-leaf 2.55, burnt-orange 3.45) was failing AA's 4.5:1 floor; the
+ * inline comment above explicitly preferred preserving white text and
+ * adding a subtle dark scrim instead of switching to dark type. This
+ * gradient is invisible at the banner's top and softens to a ~32% dark
+ * pool where the title and tagline sit, lifting the effective contrast
+ * past AA on every accent without altering the brand colour reading. */
+.project-hero-banner-inner::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 30%, rgba(0, 0, 0, 0.32) 100%);
+  pointer-events: none;
+}
+.project-hero-banner-text { position: relative; z-index: 1; }
 .project-hero-banner-eyebrow {
   font: 500 10px/1.2 var(--font-mono), monospace;
   letter-spacing: 0.22em;
@@ -765,10 +844,13 @@ body {
   letter-spacing: 0.04em;
   transition: border-color 0.18s, background 0.18s, transform 0.18s;
 }
-.project-cta:hover {
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
-  transform: translateY(-1px);
+/* Hover effects guarded so touch devices don't get a stuck-state after tap. */
+@media (hover: hover) and (pointer: fine) {
+  .project-cta:hover {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    transform: translateY(-1px);
+  }
 }
 .project-cta-label {
   font-weight: 600;
@@ -781,7 +863,9 @@ body {
   color: var(--accent);
   transition: transform 0.18s;
 }
-.project-cta:hover .project-cta-arrow { transform: translate(3px, -3px); }
+@media (hover: hover) and (pointer: fine) {
+  .project-cta:hover .project-cta-arrow { transform: translate(3px, -3px); }
+}
 
 /* ── Narrow-viewport: collapse the two-column section grid ─────────── */
 @media (max-width: 820px) {
@@ -989,9 +1073,11 @@ body {
      GPU-composited and the wash carries the accent without a stripe.) */
   transition: transform 0.18s ease, background 0.18s;
 }
-.work-index-item:hover {
-  transform: translateX(8px);
-  background: color-mix(in srgb, var(--accent, var(--ink)) 7%, transparent);
+@media (hover: hover) and (pointer: fine) {
+  .work-index-item:hover {
+    transform: translateX(8px);
+    background: color-mix(in srgb, var(--accent, var(--ink)) 7%, transparent);
+  }
 }
 .work-index-item-top {
   display: flex;
@@ -1046,9 +1132,11 @@ body {
      no layout-animating padding. */
   transition: transform 0.18s ease, background 0.18s;
 }
-.blog-item:hover {
-  transform: translateX(8px);
-  background: color-mix(in srgb, var(--ink) 4%, transparent);
+@media (hover: hover) and (pointer: fine) {
+  .blog-item:hover {
+    transform: translateX(8px);
+    background: color-mix(in srgb, var(--ink) 4%, transparent);
+  }
 }
 .blog-item-top {
   display: flex;
@@ -1591,7 +1679,9 @@ body {
   text-decoration: none;
   transition: color 0.15s;
 }
-.masthead-name:hover { color: var(--ink-2); }
+@media (hover: hover) and (pointer: fine) {
+  .masthead-name:hover { color: var(--ink-2); }
+}
 .masthead-role {
   font-size: 10px;
   letter-spacing: 0.16em;
@@ -1751,17 +1841,21 @@ body {
   background: transparent;
   border: 1px solid var(--hair);
   padding: 0;
-  width: 36px;
-  height: 36px;
+  /* 44×44 hits Apple HIG's minimum touch target and clears WCAG 2.2 AA's
+   * 24px floor with margin to spare. Was 36×36 — below both. */
+  width: 44px;
+  height: 44px;
   align-items: center;
   justify-content: center;
   font-family: var(--font-mono), monospace;
-  font-size: 16px;
+  font-size: 18px;
   color: var(--ink);
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
 }
-.masthead-burger:hover { border-color: var(--ink-3); }
+@media (hover: hover) and (pointer: fine) {
+  .masthead-burger:hover { border-color: var(--ink-3); }
+}
 .masthead-burger-glyph { line-height: 1; }
 
 /* Mobile sheet — visible only when toggled open. */
@@ -1888,7 +1982,10 @@ body {
 .masthead-sheet-project {
   display: grid;
   grid-template-columns: 32px 1fr;
-  align-items: baseline;
+  /* min-height + center alignment lifts each row to a comfortable 44px
+   * thumb-target on mobile, where this is the primary nav surface. */
+  align-items: center;
+  min-height: 44px;
   gap: 0 14px;
   padding: 10px 6px 10px 22px;
   text-decoration: none;
@@ -2059,13 +2156,26 @@ body {
  * anchored at `bottom: 16px` on ≤600px and is roughly 50px tall, so 80px
  * gives a comfortable gap. Includes safe-area inset so iPhones with the home
  * indicator don't push the picker onto the blurb either. */
-@media (max-width: 600px) {
+@media (max-width: 600px), (max-width: 820px) and (orientation: landscape) {
   .home-blurb {
     bottom: calc(80px + env(safe-area-inset-bottom, 0px));
   }
   .home-blurb p {
     font-size: 11px;
     line-height: 1.6;
+  }
+}
+
+/* Short landscape phones (e.g. 667×375 iPhone SE in landscape with the URL
+ * bar visible can leave ~110-140px of hero space). Hide the secondary
+ * bottom chrome so the wordmark + picker still breathe. */
+@media (max-height: 520px) {
+  .home-blurb,
+  .home-cred {
+    display: none;
+  }
+  .look-console {
+    bottom: 12px;
   }
 }
 
@@ -2147,6 +2257,10 @@ body {
   bottom: 32px;
   left: 50%;
   transform: translateX(-50%);
+  /* Keep the pill within the viewport on narrow screens — long bg-name +
+   * finish strings could otherwise push it past 100vw, and body's
+   * `overflow-x: hidden` would silently hide the right edge. */
+  max-width: calc(100vw - 24px);
   z-index: 6;
   opacity: 0;
   transition: opacity 0.9s ease;
@@ -2245,6 +2359,9 @@ body {
   padding: 14px 14px 12px;
   border: 1px solid var(--hair);
   background: color-mix(in srgb, var(--bg) 78%, white 22%);
+  /* -webkit- prefix kept first so Safari 16/17 (which still expects the
+   * prefixed form for backdrop-filter on some surfaces) gets blur too. */
+  -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
   box-shadow: 0 14px 40px rgba(0, 0, 0, 0.1);
   opacity: 0;
