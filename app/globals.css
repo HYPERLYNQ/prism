@@ -1765,16 +1765,36 @@ body {
 .masthead-burger-glyph { line-height: 1; }
 
 /* Mobile sheet — visible only when toggled open. */
+/* Bottom-sheet dialog.
+ *
+ * iOS-Safari gotcha: `inset: 0` shorthand combined with absolutely-positioned
+ * children sometimes resolves the child's anchor to the parent's top instead
+ * of the bottom. To force consistent bottom-up slide behavior on iPhone AND
+ * Android, we (a) decompose `inset: 0` into explicit top/right/bottom/left
+ * on the fixed container and the backdrop, and (b) set `top: auto` on the
+ * panel so Safari cannot fall back to top-anchoring even if its position
+ * resolution misfires.
+ *
+ * Layout: parent fills the viewport; backdrop fills the parent; panel is
+ * absolutely anchored to the parent's bottom edge and slides up via
+ * `translateY(100%) → 0` when `.is-open` is added.
+ */
 .masthead-sheet {
   position: fixed;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 40;
   pointer-events: none;
 }
 .masthead-sheet.is-open { pointer-events: auto; }
 .masthead-sheet-backdrop {
   position: absolute;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   border: 0;
@@ -1792,6 +1812,11 @@ body {
 }
 .masthead-sheet-panel {
   position: absolute;
+  /* Explicit top:auto + bottom:0 — iOS Safari's resolver can default to
+   * top:0 when only bottom is specified, which is what was making the
+   * panel drop down from the top instead of slide up from the bottom on
+   * iPhone. */
+  top: auto;
   left: 0;
   right: 0;
   bottom: 0;
