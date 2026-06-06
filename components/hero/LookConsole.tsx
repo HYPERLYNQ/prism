@@ -66,8 +66,20 @@ export default function LookConsole(props: LookConsoleProps) {
     >
       {/* Picker panel rises ABOVE the console button when open. The inner
           rows reuse the .lp-* class names from the original LookPanel so
-          the swatch chips/grids inherit their styling. */}
-      <div className="look-console-panel" id="look-console-panel" role="dialog" aria-label="Look picker">
+          the swatch chips/grids inherit their styling.
+
+          Disclosure semantics, not dialog: the toggle button already has
+          aria-expanded + aria-controls pointing here, which is the
+          correct disclosure pattern. The previous role="dialog" set the
+          wrong AT expectation (focus trap, focus return, inert siblings)
+          which wasn't implemented. `inert` removes the panel from the AT
+          tree + focus order when closed. */}
+      <div
+        className="look-console-panel"
+        id="look-console-panel"
+        aria-label="Look picker"
+        inert={!open}
+      >
         <SwatchRow label="finish">
           <div className="lp-chips">
             {FINISHES.map((f) => (

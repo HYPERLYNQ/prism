@@ -68,12 +68,20 @@ export default function MastheadMobile({ activeTab, activeProject }: Props) {
         <span aria-hidden="true" className="masthead-burger-glyph">≡</span>
       </button>
 
+      {/* Disclosure region, not a dialog. The previous role="dialog"
+          aria-modal="true" pair set the expectation of a full dialog
+          contract (focus trap, focus return, inert siblings, reachable
+          close button) which wasn't implemented. The burger already has
+          aria-expanded + aria-controls — that's the disclosure pattern
+          and it's what this UI actually is. `inert` is supported in
+          every modern browser (Safari 15.5+, Chrome 102+, Firefox 112+)
+          and removes the panel from the AT tree + focus order when
+          closed, which is the correct semantics for a hidden disclosure. */}
       <div
         id="masthead-sheet"
         className={`masthead-sheet${open ? " is-open" : ""}`}
-        role="dialog"
-        aria-modal="true"
         aria-label="Menu"
+        inert={!open}
       >
         <button
           type="button"
