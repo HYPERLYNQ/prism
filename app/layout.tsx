@@ -73,12 +73,40 @@ export const viewport: Viewport = {
   themeColor: "#FFFFFF",
   width: "device-width",
   initialScale: 1,
+  /* `cover` lets env(safe-area-inset-*) resolve to real values on notched
+   * iPhones. Without this the safe-area usage in globals.css evaluates to
+   * 0 and the masthead can clip under the notch in landscape. */
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${grotesk.variable} ${mono.variable}`}>
-      <body>{children}</body>
+      <head>
+        {/* Preload the hero's Helvetiker JSON typeface (~61 KB). Without this
+         * hint the browser only discovers the file after the Three.js bundle
+         * parses and calls FontLoader; preloading shaves that round-trip off
+         * the LCP-critical onReady gate on the home page. `as="fetch"` +
+         * `crossOrigin="anonymous"` are correct because FontLoader is just
+         * `fetch().then(json)` under the hood, not a CSS font request. */}
+        <link
+          rel="preload"
+          href="/fonts/helvetiker_bold.typeface.json"
+          as="fetch"
+          type="application/json"
+          crossOrigin="anonymous"
+        />
+      </head>
+      <body>
+        {/* Skip-to-content link — visually hidden until a keyboard user
+         * tabs into the page, then slides in from the top-left so the
+         * masthead's 5+ tab stops can be bypassed. Targets `#main`
+         * which every top-level route renders as its <main> landmark. */}
+        <a href="#main" className="skip-link">
+          Skip to content
+        </a>
+        {children}
+      </body>
     </html>
   );
 }

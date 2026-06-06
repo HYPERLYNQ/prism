@@ -62,12 +62,21 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   // Let `.md` / `.mdx` modules in `content/` be imported as components (blog posts).
   pageExtensions: ["ts", "tsx", "md", "mdx"],
-  // Apply the security headers to every route.
+  // Apply the security headers to every route, plus a long-lived immutable
+  // cache for `/fonts/*` (hashed / versioned at the asset path — safe to
+  // hold forever in browser + CDN). The hero's 61KB Helvetiker JSON file
+  // sits under this rule so the preload hint pays off on repeat visits too.
   async headers() {
     return [
       {
         source: "/:path*",
         headers: securityHeaders,
+      },
+      {
+        source: "/fonts/:path*",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
+        ],
       },
     ];
   },
