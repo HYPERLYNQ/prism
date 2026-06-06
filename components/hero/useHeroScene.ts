@@ -393,19 +393,28 @@ export function useHeroScene(
     let disposed = false;
     let raf = 0;
 
-    // Respect prefers-reduced-motion: skip the continuous WebGL animation loop
-    // (the fly-in, breathing, phrase dissolves, particle swarm) and instead
-    // render a single static frame of the first phrase. Saves these users a
-    // heavy, sustained rAF loop and avoids motion they've asked not to see.
+    // Respect prefers-reduced-motion — but don't lock these users to a fully
+    // frozen single frame. The earlier "render once and stop" behavior read as
+    // a broken/loading state to viewers who didn't realise macOS Reduce Motion
+    // was on (confirmed in production 2026-06-06). The current behavior keeps
+    // the animation loop running with a quieter mix:
+    //
+    //   ON for reduced-motion:  gentle breathing (no sudden motion),
+    //                            cursor parallax (user-initiated),
+    //                            letter scatter on click (user-initiated)
+    //   OFF for reduced-motion: the off-screen fly-in on first load,
+    //                            the autonomous phrase-transition machine
+    //                            (dissolve / particle swarm / reform),
+    //                            phrase cycling
+    //
+    // Net result: the hero reads as alive and 3D for accessibility users
+    // without ambushing them with autonomous animation they didn't ask for.
     const prefersReducedMotion =
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-    /** Render one resting frame: camera at rest, wordmark at home + full opacity. */
-    function renderStaticFrame(): void {
+    if (prefersReducedMotion) {
+      // Skip the off-screen-left swoop the camera would otherwise do — park it
+      // at home position so the first rendered frame is already at rest.
       camera.position.set(0, 0, baseZ);
-      camera.lookAt(lookTarget);
-      heroMaterial.opacity = 1;
-      composer.render();
     }
 
     new FontLoader().load("/fonts/helvetiker_bold.typeface.json", (loaded) => {
@@ -420,9 +429,6 @@ export function useHeroScene(
       attachPhraseToRoot(wordRoot, phraseLetterMeshes[phraseIndex], heroMaterial);
       sceneReady = true;
       onReady();
-      // Reduced-motion: the rAF loop never starts, so paint the resting frame
-      // here once the wordmark exists.
-      if (prefersReducedMotion) renderStaticFrame();
     });
 
     /* ── animation loop ────────────────────────────────────────── */
@@ -447,7 +453,12 @@ export function useHeroScene(
       particles.group.rotation.copy(wordRoot.rotation);
 
       if (sceneReady) {
-        if (mode === "idle") {
+        if (mode === "idle" && prefersReducedMotion) {
+          // Reduced-motion path: hold the first phrase steady (no autonomous
+          // dissolve / particle swarm / reform). User-initiated scatter still
+          // runs via the `else` branch below if they click the wordmark.
+          phraseOpacity = 1;
+        } else if (mode === "idle") {
           // ── phrase-transition phase machine ─────────────────────────
           //   IDLE     letters fully solid; particles hidden.
           //   DISSOLVE letters fade out; particles explode outward from each
@@ -601,9 +612,10 @@ export function useHeroScene(
         camera.layers.enableAll();
       }
     }
-    // Reduced-motion users get a single static frame (rendered in the font-load
-    // callback) instead of the continuous loop.
-    if (!prefersReducedMotion) animate();
+    // Loop runs for everyone. Reduced-motion users get a quieter version of it
+    // (no fly-in, no autonomous phrase machine) per the gating earlier in this
+    // effect — but they still get gentle breathing, parallax, and scatter.
+    animate();
 
     /* ── teardown ──────────────────────────────────────────────── */
     return () => {
