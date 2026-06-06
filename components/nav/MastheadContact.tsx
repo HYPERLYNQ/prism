@@ -44,11 +44,19 @@ export default function MastheadContact({ active }: Props) {
       ref={rootRef}
       className={`masthead-contact${open ? " is-open" : ""}${active ? " is-active" : ""}`}
     >
+      {/* Disclosure pattern (not WAI-ARIA menu). The previous role="menu" +
+          role="menuitem" + aria-haspopup="menu" set the expectation of
+          arrow-key navigation, Home/End, typeahead, and focus-on-first-
+          item-when-opened — none of which is implemented. A screen-reader
+          announcing "menu, 3 items" then finding the arrow keys inert is
+          worse than a plain disclosure region. The trigger keeps
+          aria-expanded; aria-controls now points to the panel's id; the
+          panel itself drops the menu role. */}
       <button
         type="button"
         className={`masthead-tab masthead-tab-contact${active ? " is-active" : ""}`}
         aria-expanded={open}
-        aria-haspopup="menu"
+        aria-controls="masthead-contact-menu"
         onClick={(e) => {
           e.stopPropagation();
           setOpen((o) => !o);
@@ -59,13 +67,12 @@ export default function MastheadContact({ active }: Props) {
       </button>
 
       {open && (
-        <div className="masthead-contact-menu" role="menu">
+        <div id="masthead-contact-menu" className="masthead-contact-menu">
           <a
             href={OWNER_GITHUB}
             target="_blank"
             rel="noopener noreferrer"
             className="masthead-contact-item"
-            role="menuitem"
           >
             <span className="masthead-contact-key">GH</span>
             <span className="masthead-contact-val">github.com/HYPERLYNQ</span>
@@ -74,7 +81,6 @@ export default function MastheadContact({ active }: Props) {
           <a
             href={`mailto:${OWNER_EMAIL}?subject=${encodeURIComponent("Re: mikevidal.dev — let's talk")}`}
             className="masthead-contact-item"
-            role="menuitem"
           >
             <span className="masthead-contact-key">EM</span>
             <span className="masthead-contact-val">{OWNER_EMAIL}</span>
