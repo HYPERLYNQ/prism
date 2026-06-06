@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { MarchingCubes } from "three/addons/objects/MarchingCubes.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+import type { Swatch } from "@/lib/looks";
 
 /**
  * Glossy 3D lava-lamp blob — animated MarchingCubes isosurface with real
@@ -39,13 +40,23 @@ import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
  */
 
 type ProjectBlobBannerProps = {
-  slug: string;
+  /** The project's accent swatch. Tints the blob's emissive layer so each
+   * project page reads as its own brand colour — the iridescent oil-slick
+   * base stays dark (necessary for strong iridescence) but a faint accent
+   * glow modulates the highlights. */
+  accent: Swatch;
 };
 
 const NB = 6; // metaball field points: 4 centre + 2 pinch-off
 
-export default function ProjectBlobBanner({ slug: _slug }: ProjectBlobBannerProps) {
+export default function ProjectBlobBanner({ accent }: ProjectBlobBannerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  // Depend on `accent.hex` (a primitive string) rather than the `accent`
+  // object itself so a parent rerender that passes a structurally-equal
+  // accent doesn't tear down + rebuild the scene. The component is
+  // remounted per project page via `ProjectAnimator routeKey`, so the
+  // hex changes only on navigation between projects.
+  const accentHex = accent.hex;
 
   useEffect(() => {
     const container = containerRef.current;
@@ -141,6 +152,13 @@ export default function ProjectBlobBanner({ slug: _slug }: ProjectBlobBannerProp
       iridescence: 1.0,
       iridescenceIOR: 1.8,
       iridescenceThicknessRange: [200, 800],
+      // Per-project accent tint. Emissive sits independent of lighting, so
+      // even on the matte-shadowed sides of the blob a hint of the project's
+      // accent reads. Intensity is intentionally low (0.08) — too much and
+      // the iridescent rainbow effect collapses into a single hue. The
+      // accent hex is read once at mount; remount per project page reseeds.
+      emissive: new THREE.Color(accentHex),
+      emissiveIntensity: 0.08,
     });
 
     // ── MarchingCubes blob ───────────────────────────────────────────
@@ -483,7 +501,7 @@ export default function ProjectBlobBanner({ slug: _slug }: ProjectBlobBannerProp
       renderer.dispose();
       if (canvas.parentNode) canvas.parentNode.removeChild(canvas);
     };
-  }, []);
+  }, [accentHex]);
 
   return <div ref={containerRef} className="project-hero-blob" aria-hidden="true" />;
 }

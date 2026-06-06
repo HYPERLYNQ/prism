@@ -29,7 +29,7 @@ export default function ProjectHeroBanner({ project, accent }: ProjectHeroBanner
         "--banner-accent-deep": accent.deep,
       } as React.CSSProperties}
     >
-      <ProjectBlobBanner slug={project.slug} />
+      <ProjectBlobBanner accent={accent} />
 
       <div className="project-hero-banner-inner">
         <div className="project-hero-banner-text">
