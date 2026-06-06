@@ -2029,6 +2029,21 @@ body {
 }
 .home-blurb b { color: var(--ink); font-weight: 500; }
 
+/* Mobile: lift the blurb above the bottom-center .look-console pill so the
+ * picker doesn't sit on top of the "production-grade" line. The pill is
+ * anchored at `bottom: 16px` on ≤600px and is roughly 50px tall, so 80px
+ * gives a comfortable gap. Includes safe-area inset so iPhones with the home
+ * indicator don't push the picker onto the blurb either. */
+@media (max-width: 600px) {
+  .home-blurb {
+    bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  }
+  .home-blurb p {
+    font-size: 11px;
+    line-height: 1.6;
+  }
+}
+
 /* ═════════════════════════════════════════════════════════════════════════
  * HOME CREDENTIALS — bottom-right shipped-work credentials
  * (Was .hero-cred in the old layout, top-right under the status badge.)
