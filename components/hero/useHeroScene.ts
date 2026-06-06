@@ -107,15 +107,40 @@ export function useHeroScene(
     // rendering disabled). The renderer constructor throws when it can't acquire
     // a context — catch it and signal the React layer to show a DOM fallback
     // hero instead of leaving a blank canvas as the first impression.
+    //
+    // We deliberately do NOT pass `powerPreference: "high-performance"`. That
+    // flag asks the browser for the discrete GPU, and Chrome on Apple Silicon
+    // Macs running macOS Tahoe 26.1+ refuses the request (no dGPU exists on
+    // M-series chips, only the integrated Apple GPU) — the context creation
+    // fails outright and a top-of-line M3 Pro user falls to the static
+    // fallback. Leaving powerPreference unset lets the browser pick "default"
+    // for desktops and "low-power" on battery for laptops, which is what we
+    // want anyway for a portfolio hero (no shader-heavy postprocessing in this
+    // scene that would benefit from a forced dGPU).
+    //
+    // A multi-tier cascade on the same canvas would NOT help here: the HTML
+    // spec caches the WebGL context on the canvas, so a second
+    // `new WebGLRenderer({canvas, ...newAttrs})` would silently get the
+    // already-created context with the ORIGINAL attributes. The only way to
+    // genuinely retry with different attrs is to replace the canvas DOM node
+    // — heavy and out of scope for this fix. We log the failure with full
+    // diagnostics so future production failures are triageable.
     let renderer: THREE.WebGLRenderer;
     try {
       renderer = new THREE.WebGLRenderer({
         canvas,
         alpha: true,
         antialias: window.innerWidth < 1920,
-        powerPreference: "high-performance",
       });
-    } catch {
+    } catch (err) {
+      const ua =
+        typeof navigator !== "undefined" ? navigator.userAgent : "n/a";
+      console.error(
+        `[useHeroScene] WebGL renderer init failed — showing static fallback.\n` +
+          `  three.js: r${THREE.REVISION}\n` +
+          `  userAgent: ${ua}\n` +
+          `  error: ${err instanceof Error ? (err.stack ?? err.message) : String(err)}`,
+      );
       onError();
       return;
     }
