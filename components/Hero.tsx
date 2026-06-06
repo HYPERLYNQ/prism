@@ -78,7 +78,10 @@ export default function Hero() {
   const debrisHex = SWATCHES.find((s) => s.name === debrisColorName)?.hex ?? "#0A0E14";
 
   return (
-    <div className={`hero-root${webglFailed ? " webgl-failed" : ""}${ready ? " is-ready" : ""}`}>
+    <main
+      id="main"
+      className={`hero-root${webglFailed ? " webgl-failed" : ""}${ready ? " is-ready" : ""}`}
+    >
       <h1 className="sr-only">Mike Vidal — AI Engineer</h1>
       {/* Crawlable description — the hero's value-prop phrases are WebGL geometry,
           not DOM text, so without this the home page has almost no indexable copy. */}
@@ -130,6 +133,6 @@ export default function Hero() {
 
       {/* Bottom-right shipped-work credentials. */}
       <HomeCredentials />
-    </div>
+    </main>
   );
 }

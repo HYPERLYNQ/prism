@@ -25,7 +25,7 @@ export default async function BlogIndex() {
   const posts = await getAllPostsMeta();
 
   return (
-    <div className="project-page">
+    <main id="main" className="project-page">
       <Masthead activeTab="writing" />
 
       <PageEnter>
@@ -67,6 +67,6 @@ export default async function BlogIndex() {
       </PageEnter>
 
       <footer className="project-page-footer">Mike Vidal · Miami · open to remote</footer>
-    </div>
+    </main>
   );
 }

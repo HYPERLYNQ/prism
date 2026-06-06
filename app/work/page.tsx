@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 
 export default function WorkIndex() {
   return (
-    <div className="project-page">
+    <main id="main" className="project-page">
       <Masthead activeTab="work" />
 
       <PageEnter>
@@ -63,6 +63,6 @@ export default function WorkIndex() {
       <footer className="project-page-footer">
         Mike Vidal · Miami · open to remote
       </footer>
-    </div>
+    </main>
   );
 }

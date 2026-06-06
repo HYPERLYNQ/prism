@@ -59,7 +59,7 @@ export default async function BlogPost({ params }: { params: Promise<RouteParams
   const { meta, Content } = post;
 
   return (
-    <div className="project-page">
+    <main id="main" className="project-page">
       {/* BlogPosting structured data — typed from post metadata, no user input. */}
       <script type="application/ld+json">{JSON.stringify(blogPostingSchema(meta, slug))}</script>
       <Masthead activeTab="writing" />
@@ -91,6 +91,6 @@ export default async function BlogPost({ params }: { params: Promise<RouteParams
       </PageEnter>
 
       <footer className="project-page-footer">Mike Vidal · Miami · open to remote</footer>
-    </div>
+    </main>
   );
 }

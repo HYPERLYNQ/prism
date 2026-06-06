@@ -71,7 +71,8 @@ export default async function ProjectPage({ params }: { params: Promise<RoutePar
   const schema = creativeWorkSchema(project);
 
   return (
-    <div
+    <main
+      id="main"
       className="project-page"
       // Page-level accent — read by every nested rule (progress bar, status
       // badge, section numbers, stack chips, CTA card). Single source of truth
@@ -111,6 +112,6 @@ export default async function ProjectPage({ params }: { params: Promise<RoutePar
       <footer className="project-page-footer">
         Mike Vidal · Miami · open to remote
       </footer>
-    </div>
+    </main>
   );
 }
