@@ -31,6 +31,13 @@ export default function ProjectMeta({ project, accent }: ProjectMetaProps) {
 
   return (
     <div className="project-body" style={accentStyle}>
+      {/* Mobile tagline — duplicates the project tagline that lives inside
+          the banner on desktop. On phones the banner is too busy with the
+          big title + accent gradient + 3D blob, so the tagline gets lifted
+          out and rendered here in normal-flow type. CSS at ≤820px hides
+          the banner's tagline and shows this one; above 820px the inverse. */}
+      <p className="project-tagline-mobile">{project.tagline}</p>
+
       {/* Status chip — the proof point. A rounded pill (kept from the version
           that read best) but de-clichéd: a static accent DIAMOND mark with a
           soft halo instead of the generic pulsing "live dot". */}

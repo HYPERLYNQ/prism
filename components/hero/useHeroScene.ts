@@ -603,6 +603,15 @@ export function useHeroScene(
                 mesh.position.copy(mesh.userData.home);
                 mesh.rotation.set(0, 0, 0);
               }
+              // Hide the particle swarm. If the user clicked DURING a phrase
+              // transition (DISSOLVE/TRAVEL/REFORM), particles were visible
+              // when scatter took over and the phase machine never reached
+              // its own `endReform` call at the end of REFORM. Without this
+              // line the wordmark reforms cleanly but the particle cloud
+              // stays stuck on screen until the next phrase cycle. Safe to
+              // call even if particles were already hidden — it just sets
+              // mesh.visible = false.
+              endReform(particles);
             }
           }
         }

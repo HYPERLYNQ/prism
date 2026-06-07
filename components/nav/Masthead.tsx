@@ -3,6 +3,7 @@ import { PROJECTS } from "@/lib/projects";
 import { OWNER_NAME, OWNER_ROLE } from "@/lib/siteConfig";
 import MastheadContact from "./MastheadContact";
 import MastheadMobile from "./MastheadMobile";
+import MastheadScrollSentry from "./MastheadScrollSentry";
 
 /**
  * The site-wide top masthead. Replaces the previous corner-overlay system
@@ -43,6 +44,7 @@ export default function Masthead({ activeTab, activeProject }: MastheadProps) {
 
   return (
     <header className="masthead">
+      <MastheadScrollSentry />
       <div className="masthead-l">
         <Link href="/" className="masthead-name" aria-label={`${OWNER_NAME} — home`}>
           {OWNER_NAME}

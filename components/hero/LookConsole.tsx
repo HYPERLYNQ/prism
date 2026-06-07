@@ -38,6 +38,8 @@ type LookConsoleProps = {
 export default function LookConsole(props: LookConsoleProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<{ startY: number; dy: number } | null>(null);
 
   // Outside-click + Escape close. The panel button stops propagation on its
   // own click so toggling doesn't immediately re-close.
@@ -59,6 +61,55 @@ export default function LookConsole(props: LookConsoleProps) {
     };
   }, [open]);
 
+  // Swipe-down-to-close — only on mobile (≤600px) where the panel renders
+  // as a bottom sheet. The swipe initiates only when the panel is scrolled
+  // to the very top, so normal scroll inside the panel still works for
+  // longer content (swipe up = scroll content, swipe down at top = close).
+  function onTouchStart(e: React.TouchEvent) {
+    if (!open) return;
+    if (typeof window === "undefined" || window.innerWidth > 600) return;
+    const panel = panelRef.current;
+    if (!panel || panel.scrollTop > 0) return;
+    dragRef.current = { startY: e.touches[0].clientY, dy: 0 };
+    panel.style.transition = "none";
+  }
+  function onTouchMove(e: React.TouchEvent) {
+    if (!dragRef.current || !panelRef.current) return;
+    const dy = e.touches[0].clientY - dragRef.current.startY;
+    if (dy < 0) return; // ignore upward swipes — those are scrolls
+    dragRef.current.dy = dy;
+    panelRef.current.style.transform = `translateY(${dy}px)`;
+  }
+  function onTouchEnd() {
+    const drag = dragRef.current;
+    const panel = panelRef.current;
+    dragRef.current = null;
+    if (!drag || !panel) return;
+    // Restore the CSS-controlled transition for the spring/dismiss animation.
+    panel.style.transition = "transform 0.26s cubic-bezier(0.2, 0.7, 0.2, 1)";
+    if (drag.dy > 80) {
+      // Past the close threshold — animate to fully off-screen, then commit
+      // the React close so the panel doesn't snap back into view first.
+      panel.style.transform = "translateY(100%)";
+      window.setTimeout(() => {
+        if (panelRef.current) {
+          panelRef.current.style.transition = "";
+          panelRef.current.style.transform = "";
+        }
+        setOpen(false);
+      }, 260);
+    } else {
+      // Under the threshold — spring back to the open position.
+      panel.style.transform = "translateY(0)";
+      window.setTimeout(() => {
+        if (panelRef.current) {
+          panelRef.current.style.transition = "";
+          panelRef.current.style.transform = "";
+        }
+      }, 260);
+    }
+  }
+
   return (
     <div
       ref={rootRef}
@@ -75,11 +126,18 @@ export default function LookConsole(props: LookConsoleProps) {
           which wasn't implemented. `inert` removes the panel from the AT
           tree + focus order when closed. */}
       <div
+        ref={panelRef}
         className="look-console-panel"
         id="look-console-panel"
         aria-label="Look picker"
         inert={!open}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
       >
+        {/* Drag handle — visual hint for the swipe-down-to-close gesture.
+            Only rendered visible on the mobile bottom-sheet tier via CSS. */}
+        <div className="look-console-handle" aria-hidden="true" />
         <SwatchRow label="finish">
           <div className="lp-chips">
             {FINISHES.map((f) => (

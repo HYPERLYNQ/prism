@@ -126,6 +126,7 @@ body {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   text-decoration: none;
+  text-align: center;
   border-radius: 4px;
   transform: translateY(-150%);
   transition: transform 0.18s ease;
@@ -277,6 +278,7 @@ body {
   padding: 5px 8px;
   border-radius: 5px;
   cursor: pointer;
+  text-align: center;
   transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
 .mb:hover {
@@ -826,7 +828,7 @@ body {
  * text rather than overwhelming the page. */
 .project-cta {
   display: inline-flex;
-  align-items: baseline;
+  align-items: center;
   gap: 10px;
   padding: 12px 18px;
   border-radius: 999px;
@@ -1262,6 +1264,57 @@ body {
 
 /* ── Mid-mobile (≤600px) — bring everything down another notch so the
  *    chrome doesn't dwarf the content on a typical phone. */
+/* ═════════════════════════════════════════════════════════════════════════
+ * Project-page mobile density fixes (audited 2026-06-07 against the
+ * taste-skill rules — too much duplicated content stacking above the fold,
+ * and the masthead bled green from the banner because of its blur).
+ *
+ * A — opaque masthead on .project-page so the banner gradient can't bleed
+ *     through the blur. Home page keeps the blur-through-scene aesthetic
+ *     because the masthead there is outside .project-page.
+ *
+ * B — hide the YEAR / ROLE / CODE meta grid at ≤820px. Year and Role are
+ *     already shown in the banner eyebrow above it; on mobile the
+ *     duplication eats vertical space that should go to the actual content.
+ *     Desktop keeps the meta grid as a formal spec strip.
+ *
+ * C — shorten the banner eyebrow on mobile. The desktop string
+ *     "2024-26 · Solo — founder, engineer, shipped to App Store" wraps to
+ *     three lines on a phone and competes with the H1. On mobile we hide
+ *     the role span + separator so only the year shows.
+ * ═════════════════════════════════════════════════════════════════════════ */
+.project-page .masthead {
+  background: var(--bg);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+/* Mobile-only tagline. Lives inside ProjectMeta as a duplicate of the
+ * banner's tagline so the banner can stay clean on small screens. Hidden
+ * by default; the ≤820px block below shows it and hides the banner copy. */
+.project-tagline-mobile {
+  display: none;
+  margin: 0 0 24px;
+  font-family: var(--font-grotesk), sans-serif;
+  font-size: 17px;
+  line-height: 1.5;
+  letter-spacing: -0.005em;
+  color: var(--ink);
+  max-width: 56ch;
+}
+
+@media (max-width: 820px) {
+  .meta { display: none; }
+  .project-hero-banner-eyebrow .project-hero-banner-sep,
+  .project-hero-banner-eyebrow span:last-child {
+    display: none;
+  }
+  /* Banner shows only the eyebrow (year) + title on phones. The tagline
+   * moves below the banner via .project-tagline-mobile. */
+  .project-hero-banner-tagline { display: none; }
+  .project-tagline-mobile { display: block; }
+}
+
 @media (max-width: 600px) {
   .project-hero-banner-inner {
     padding: 48px 22px 56px;
@@ -1654,6 +1707,26 @@ body {
   -webkit-backdrop-filter: blur(10px) saturate(140%);
   border-bottom: 1px solid var(--hair);
   font-family: var(--font-mono), monospace;
+  transition: background 0.22s ease, border-color 0.22s ease, color 0.22s ease;
+}
+
+/* Scrolled state — inversion. When the page has scrolled even slightly, the
+ * masthead flips to a dark palette so it reads against the scrolled content
+ * sliding beneath it. We redefine the palette tokens LOCALLY on .masthead so
+ * every descendant that pulls `var(--ink)`, `var(--bg)`, `var(--hair)` etc.
+ * inverts automatically — no per-element overrides needed.
+ *
+ * The MastheadScrollSentry client island adds `is-scrolled` to <html> once
+ * `window.scrollY > 8`. */
+html.is-scrolled .masthead {
+  --ink: #FAFAF7;
+  --ink-2: rgba(250, 250, 247, 0.7);
+  --ink-3: rgba(250, 250, 247, 0.55);
+  --hair: rgba(250, 250, 247, 0.18);
+  --bg: #0A0E14;
+  --bg-deep: #06090E;
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  color: var(--ink);
 }
 
 /* Left cluster — wordmark + role + availability status */
@@ -1939,6 +2012,7 @@ body {
   line-height: 1;
   color: var(--ink-2);
   cursor: pointer;
+  text-align: center;
 }
 .masthead-sheet-close:hover { color: var(--ink); }
 .masthead-sheet-nav {
@@ -2145,33 +2219,52 @@ body {
 }
 .home-blurb b { color: var(--ink); font-weight: 500; }
 
-/* Mobile: lift the blurb above the bottom-center .look-console pill so the
- * picker doesn't sit on top of the "production-grade" line. The pill is
- * anchored at `bottom: 16px` on ≤600px and is roughly 50px tall, so 80px
- * gives a comfortable gap. Includes safe-area inset so iPhones with the home
- * indicator don't push the picker onto the blurb either. */
-@media (max-width: 600px), (max-width: 820px) and (orientation: landscape) {
-  .home-blurb {
-    bottom: calc(80px + env(safe-area-inset-bottom, 0px));
-  }
-  .home-blurb p {
-    font-size: 11px;
-    line-height: 1.6;
-  }
-}
+/* ═════════════════════════════════════════════════════════════════════════
+ * HOME BOTTOM-BAND RESPONSIVE ARCHITECTURE
+ *
+ * The home hero has three pieces of chrome at the bottom of the viewport:
+ *
+ *   1. .home-blurb     — value-prop text
+ *   2. .look-console   — interactive picker pill (UI — never hidden)
+ *   3. .home-cred      — shipped-work proof links
+ *
+ * Content-fit math: the three pieces side-by-side need ~1280px of room
+ * (blurb's natural ~470px + picker 280px centred + cred 300px right-
+ * anchored + breathing gaps). Below that they collide AS A HORIZONTAL
+ * BAND — the previous "shrink the band" patches kept landing in dead
+ * zones because three-pieces-side-by-side is the wrong pattern there.
+ *
+ * The fix is to ROTATE the layout under 1280px instead of squeezing it:
+ *
+ *   >1280px       SPACIOUS  Horizontal band — blurb left, picker centre,
+ *                           cred right. Desktop intent.
+ *
+ *   601-1280px    TIGHT     Vertical stack on the LEFT — blurb above,
+ *                           cred below, picker owns the bottom-centre
+ *                           alone. Cred moves from right-anchored to
+ *                           left-anchored so the layout has a single
+ *                           consistent column of metadata.
+ *
+ *   ≤600px        MOBILE    Cred hidden (the left column would compete
+ *                           with the picker-as-bottom-sheet pattern).
+ *                           Blurb takes the smaller lift since the
+ *                           picker sits at bottom: 16px in this range.
+ *
+ *   max-height ≤520px  SHORT  (emergency — landscape phones with URL
+ *                              bar visible). Hide both chrome pieces;
+ *                              drop the picker so the wordmark breathes.
+ * ═════════════════════════════════════════════════════════════════════════ */
 
-/* Short landscape phones (e.g. 667×375 iPhone SE in landscape with the URL
- * bar visible can leave ~110-140px of hero space). Hide the secondary
- * bottom chrome so the wordmark + picker still breathe. */
-@media (max-height: 520px) {
-  .home-blurb,
-  .home-cred {
-    display: none;
-  }
-  .look-console {
-    bottom: 12px;
-  }
-}
+/* The actual @media tier rules live AFTER the .home-cred base rule below.
+ * They must be source-ordered after BOTH base rules (.home-blurb at
+ * line 2125, .home-cred at line 2189 in the current file) because in
+ * CSS a media-query rule and a base rule have the SAME specificity
+ * (class selector = 0,1,0) — so last-declared wins. Putting the @media
+ * block above the .home-cred base silently lets the base re-overwrite
+ * `right`, `text-align`, and `align-items` at every viewport, defeating
+ * the rotation. Architecture documentation above explains the intent;
+ * see the actual rules after the .home-cred / .hero-root.is-ready
+ * .home-cred declarations. */
 
 /* ═════════════════════════════════════════════════════════════════════════
  * HOME CREDENTIALS — bottom-right shipped-work credentials
@@ -2197,6 +2290,61 @@ body {
   transform: none;
   transition-delay: 0.6s;
 }
+
+/* ─── Home bottom-band tier rules (Spacious / Tight / Mobile / Short) ───
+ * Architecture documented at the top of this file, around line 2148.
+ * These rules MUST live after both .home-blurb and .home-cred base rules
+ * so source-order lets the @media overrides win (verified 2026-06-06 via
+ * Playwright at viewports 1500/1100/900/750/600/400 — the previous
+ * placement above .home-cred silently lost the cascade). */
+
+/* TIGHT — ≤1280px. Blurb lifts. Cred rotates from right-anchored to
+ * left-anchored, stacked under the blurb. Picker pill owns the
+ * bottom-centre on its own row. */
+@media (max-width: 1280px) {
+  .home-blurb {
+    bottom: calc(165px + env(safe-area-inset-bottom, 0px));
+    max-width: min(56ch, calc(100vw - 60px));
+  }
+  .home-blurb p {
+    font-size: 11.5px;
+    line-height: 1.65;
+  }
+  .home-cred {
+    left: max(var(--ui-edge), var(--ui-side-pad));
+    right: auto;
+    bottom: calc(90px + env(safe-area-inset-bottom, 0px));
+    text-align: left;
+    align-items: flex-start;
+  }
+}
+
+/* MOBILE — ≤600px. Cred hidden entirely. Blurb takes the smaller lift
+ * because the picker drops to bottom: 16px at this tier. */
+@media (max-width: 600px) {
+  .home-cred { display: none; }
+  .home-blurb {
+    bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  }
+  .home-blurb p {
+    font-size: 11px;
+    line-height: 1.6;
+  }
+}
+
+/* SHORT viewport emergency — landscape phones with URL bar visible can
+ * leave ~110-140px of hero space. Hide both chrome pieces; drop the
+ * picker so the wordmark scene still breathes. */
+@media (max-height: 520px) {
+  .home-blurb,
+  .home-cred {
+    display: none;
+  }
+  .look-console {
+    bottom: 12px;
+  }
+}
+
 .home-cred-row {
   display: inline-flex;
   align-items: baseline;
@@ -2229,9 +2377,9 @@ body {
 }
 .home-cred-more:hover { color: var(--ink-2); }
 
-@media (max-width: 600px) {
-  .home-cred { display: none; }
-}
+/* `.home-cred { display: none }` for narrow viewports lives in the
+ * consolidated home-bottom-band cascade above (TIGHT tier, ≤1099px).
+ * No standalone mobile rule needed here. */
 
 /* ═════════════════════════════════════════════════════════════════════════
  * LOOK CONSOLE — floating bottom-center picker pill
@@ -2335,6 +2483,11 @@ body {
   padding-left: 4px;
 }
 .look-console-values .sep { color: var(--ink-3); margin: 0 5px; }
+/* The bottom-sheet drag handle (rendered in LookConsole.tsx) is hidden by
+ * default; the mobile media query below makes it visible only when the
+ * panel renders as a bottom sheet. */
+.look-console-handle { display: none; }
+
 .look-console-caret {
   font-size: 10px;
   color: var(--ink-3);
@@ -2405,6 +2558,17 @@ body.dark .look-console-panel {
     display: flex;
     justify-content: center;
   }
+  /* Drag handle — small pill at the top of the bottom-sheet that hints
+   * at the swipe-down-to-close affordance. Hidden on non-mobile widths
+   * because the panel rises above the button there, not from the bottom. */
+  .look-console-handle {
+    display: block;
+    width: 36px;
+    height: 4px;
+    margin: 0 auto 12px;
+    border-radius: 2px;
+    background: color-mix(in srgb, var(--ink) 22%, transparent);
+  }
   .look-console-panel {
     position: fixed;
     top: auto;
@@ -2452,26 +2616,38 @@ body.dark .look-console-panel {
     font-size: 9.5px;
     margin-bottom: 2px;
   }
-  /* Swatch grid: 5 swatches across × 2 rows = the 10 swatches per section,
-   * fluid-sized so they fill the panel evenly on every phone width without
-   * forcing a horizontal overflow at the page level. aspect-ratio: 1 keeps
-   * each swatch circular regardless of column width. Max-width caps the
-   * actual tap target so a foldable or large phone doesn't stretch the
-   * dots into rugby balls. */
+  /* Swatch grid: 5 swatches across × 2 rows = the 10 swatches per section.
+   *
+   * `.lp-row` is `display: flex; align-items: flex-start;` (line ~216),
+   * which means flex children don't stretch to fill the row's cross axis.
+   * Without `width: 100%` here, `.lp-sw` shrinks to its content's
+   * intrinsic width — and because each `.sw` is a button with no content
+   * (just a colour background), `1fr` columns collapse to 0 and the
+   * swatches render as tiny dots. Forcing the grid container's width to
+   * 100% of the row gives `1fr` something to share, which gives each
+   * `.sw` a real cell width to fill. Same fix applied to `.lp-chips`
+   * defensively. */
   .look-console-panel .lp-sw {
+    width: 100%;
     grid-template-columns: repeat(5, 1fr);
-    gap: 10px;
+    gap: 8px;
   }
   .look-console-panel .sw {
     width: 100%;
     height: auto;
     aspect-ratio: 1;
-    max-width: 44px;
+    /* 30px max so the picker doesn't swallow the screen on mobile.
+     * 5 dots × 30px + 4 gaps × 8px = 182px wide group, comfortably inside
+     * any phone viewport. 30px clears WCAG 2.2 AA's 24px tap-target
+     * minimum; Apple HIG asks for 44pt but the 8px between-dot spacing
+     * keeps mis-taps unlikely at this size. */
+    max-width: 30px;
     justify-self: center;
   }
   /* Finishes: 4 across × 2 rows = the 7 finishes (last row half-empty),
    * with ≥44px tall per chip per WCAG. */
   .look-console-panel .lp-chips {
+    width: 100%;
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 8px;
