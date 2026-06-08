@@ -1,5 +1,4 @@
 import * as THREE from "three";
-import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import {
   CAM_CLEAR,
   DEBRIS_SCALE_MIN,
@@ -91,39 +90,47 @@ function buildBoltShape(): THREE.Shape {
 }
 
 /**
- * Smiley face built by merging a flat disc + two eye bumps + a half-torus smile
- * into a single geometry. The face is squashed in Z so the features clearly poke
- * forward and read as facial bumps rather than blending into a sphere.
+ * Smiley silhouette: a disc with two circular eye holes and a crescent smile
+ * slot cut clean through it. Same family as the heart / bolt / sparkle — built
+ * as a `THREE.Shape` with `holes`, then extruded with a bevel so the chromatic
+ * material catches the cut edges. Replaces the older merged-spheres build
+ * (flat disc + eye bumps + half-torus mouth) which read as a clunky pile.
  */
-function buildSmileyGeometry(): THREE.BufferGeometry {
-  const parts: THREE.BufferGeometry[] = [
-    (() => {
-      const g = new THREE.SphereGeometry(58, 22, 14);
-      g.scale(1, 1, 0.28); // very flat face disc
-      return g;
-    })(),
-    (() => {
-      const g = new THREE.SphereGeometry(12, 12, 10);
-      g.translate(-23, 20, 22); // bigger eye L, poking out
-      return g;
-    })(),
-    (() => {
-      const g = new THREE.SphereGeometry(12, 12, 10);
-      g.translate(23, 20, 22); // bigger eye R
-      return g;
-    })(),
-    (() => {
-      const g = new THREE.TorusGeometry(30, 8, 10, 24, Math.PI);
-      g.rotateZ(Math.PI);
-      g.translate(0, -14, 22); // bigger smile, poking out
-      return g;
-    })(),
-  ];
-  const merged = mergeGeometries(parts, false)!;
-  parts.forEach((p) => p.dispose());
-  merged.center();
-  merged.scale(1.55, 1.55, 1.55);
-  return merged;
+function buildSmileyShape(): THREE.Shape {
+  const shape = new THREE.Shape();
+
+  // Outer face boundary (CCW for the shape outline).
+  const faceR = 86;
+  shape.absarc(0, 0, faceR, 0, Math.PI * 2, false);
+
+  // Eye holes — round dots punched out of the face. Higher on the face
+  // (positive Y), inset from the rim. Path winds CW so it reads as a hole.
+  const eyeR = 14;
+  const eyeY = 30;
+  const eyeX = 34;
+  const eyeL = new THREE.Path();
+  eyeL.absarc(-eyeX, eyeY, eyeR, 0, Math.PI * 2, true);
+  shape.holes.push(eyeL);
+  const eyeRR = new THREE.Path();
+  eyeRR.absarc(eyeX, eyeY, eyeR, 0, Math.PI * 2, true);
+  shape.holes.push(eyeRR);
+
+  // Smile — an annular slice below the eye line. Two concentric arcs swept
+  // through the bottom half (π → 2π in CCW direction passes through 3π/2 at
+  // the bottom) with a thin slot between them. The inner arc returns CW so
+  // the path closes into a single crescent loop.
+  const smileCY = -4;
+  const smileOR = 50;
+  const smileIR = 38;
+  const smile = new THREE.Path();
+  smile.moveTo(-smileOR, smileCY);
+  smile.absarc(0, smileCY, smileOR, Math.PI, 2 * Math.PI, false);
+  smile.lineTo(smileIR, smileCY);
+  smile.absarc(0, smileCY, smileIR, 2 * Math.PI, Math.PI, true);
+  smile.closePath();
+  shape.holes.push(smile);
+
+  return shape;
 }
 
 /** Stretched octahedron used as a low-poly gem 💎. */
@@ -139,7 +146,7 @@ function buildGemGeometry(): THREE.BufferGeometry {
  */
 export function buildDebrisGeometries(): THREE.BufferGeometry[] {
   return [
-    buildSmileyGeometry(),
+    extrudeGeo(buildSmileyShape(), 32, 10),        // smiley coin
     extrudeGeo(buildHeartShape(), 34, 12),
     extrudeGeo(buildStarShape(4, 100, 22), 26, 9), // sparkle ✦
     extrudeGeo(buildBoltShape(), 28, 9),           // lightning
