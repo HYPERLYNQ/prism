@@ -24,7 +24,19 @@ import { SWATCHES, type Swatch } from "./looks";
 export type ProjectDemo =
   | { kind: "loom"; id: string; alt?: string }
   | { kind: "video"; src: string; poster?: string; alt?: string }
-  | { kind: "image"; src: string; alt: string };
+  | { kind: "image"; src: string; alt: string }
+  /**
+   * 2–3 product screenshots rendered as an editorial gallery: lead shot
+   * full-width, the rest in a two-up grid. `caption` renders in the
+   * meta-key style under each frame ("Approval queue", "Analytics", …).
+   * `note` (optional) renders one quiet provenance line under the grid —
+   * use it for honesty flags like "demo data" or "marketing site".
+   */
+  | {
+      kind: "gallery";
+      images: { src: string; alt: string; caption: string }[];
+      note?: string;
+    };
 
 /** One project. Keep the field set minimal; new fields here ripple through every consumer. */
 export type Project = {
@@ -128,6 +140,27 @@ export const PROJECTS: Project[] = [
       "Open source, published to npm, zero cloud — runs fully local",
     ],
     link: { label: "GitHub", href: "https://github.com/HYPERLYNQ/synaptic" },
+    demo: {
+      kind: "gallery",
+      note: "Captured from getsynaptic.dev",
+      images: [
+        {
+          src: "/work/synaptic/02-quickstart.webp",
+          alt: "Quick-start terminal — one-line plugin install",
+          caption: "Quick start",
+        },
+        {
+          src: "/work/synaptic/03-features.webp",
+          alt: "Feature grid — recall, hybrid search, git intelligence, checkpoints",
+          caption: "Feature grid",
+        },
+        {
+          src: "/work/synaptic/01-hero.webp",
+          alt: "synaptic landing hero — persistent memory for Claude Code",
+          caption: "getsynaptic.dev",
+        },
+      ],
+    },
   },
   {
     slug: "wholesale-harmony",
@@ -160,6 +193,37 @@ export const PROJECTS: Project[] = [
       "Workspaces monorepo: main app + extensions for Shopify Functions",
     ],
     link: { label: "Shopify App Store", href: "https://apps.shopify.com/wholesale-harmony" },
+    demo: {
+      kind: "gallery",
+      note: "Admin app shown with demo merchant data · site shots from wholesaleharmony.com",
+      images: [
+        {
+          src: "/work/wholesale-harmony/04-app-registrations.webp",
+          alt: "Admin app — B2B registration approval queue with pending customers",
+          caption: "Approval queue — admin app",
+        },
+        {
+          src: "/work/wholesale-harmony/06-app-customer-types.webp",
+          alt: "Admin app — customer type tiers with registration form builder",
+          caption: "Customer types",
+        },
+        {
+          src: "/work/wholesale-harmony/05-app-pricing.webp",
+          alt: "Admin app — wholesale pricing rules and price lists",
+          caption: "Pricing engine",
+        },
+        {
+          src: "/work/wholesale-harmony/01-hero.webp",
+          alt: "Wholesale Harmony marketing site hero",
+          caption: "wholesaleharmony.com",
+        },
+        {
+          src: "/work/wholesale-harmony/02-features.webp",
+          alt: "Core features — registration, pricing, approvals, storefront",
+          caption: "Core features",
+        },
+      ],
+    },
   },
   {
     slug: "sonar",
@@ -191,6 +255,27 @@ export const PROJECTS: Project[] = [
       "Five source scrapers feeding a normalised lead model in SQLite",
       "Next.js 16 approval dashboard with Smartlead-webhook reply tracking",
     ],
+    demo: {
+      kind: "gallery",
+      note: "Live pipeline data — lead identities blurred",
+      images: [
+        {
+          src: "/work/sonar/01-queue.webp",
+          alt: "Approval queue — scored leads with a drafted outreach email",
+          caption: "Approval queue",
+        },
+        {
+          src: "/work/sonar/02-analytics.webp",
+          alt: "Analytics — 3,904 leads through the scrape-classify-draft pipeline",
+          caption: "Pipeline analytics",
+        },
+        {
+          src: "/work/sonar/03-history.webp",
+          alt: "History — classified leads with intent scores",
+          caption: "Lead history",
+        },
+      ],
+    },
   },
   {
     slug: "fever",
@@ -222,6 +307,26 @@ export const PROJECTS: Project[] = [
       "Trend-snapshot pipeline tracking emerging signals over time",
       "Next.js 16 + Tailwind v4 dashboard with Recharts analytics",
     ],
+    demo: {
+      kind: "gallery",
+      images: [
+        {
+          src: "/work/fever/01-hero.webp",
+          alt: "Fever landing hero — content virality scoring",
+          caption: "Landing",
+        },
+        {
+          src: "/work/fever/02-features.webp",
+          alt: "Feature grid — content DNA, algorithm intelligence, virality prediction",
+          caption: "Feature grid",
+        },
+        {
+          src: "/work/fever/03-pricing.webp",
+          alt: "Pricing — Free, Pro, Agency tiers",
+          caption: "Pricing",
+        },
+      ],
+    },
   },
   {
     slug: "hotship",
@@ -255,6 +360,27 @@ export const PROJECTS: Project[] = [
       "Credentials stored in OS keychain via Rust `keyring` crate",
       "Explicit-confirmation guard on every label purchase — no auto-buy",
     ],
+    demo: {
+      kind: "gallery",
+      note: "Desktop app UI — demo shipment data",
+      images: [
+        {
+          src: "/work/hotship/01-dashboard.webp",
+          alt: "Dashboard — in-flight shipments, spend, recent activity",
+          caption: "Dashboard",
+        },
+        {
+          src: "/work/hotship/03-new-shipment.webp",
+          alt: "New shipment — paste address, verify, rate-shop, buy",
+          caption: "Ship a package",
+        },
+        {
+          src: "/work/hotship/02-history.webp",
+          alt: "Shipment history — tracking, void, CSV export",
+          caption: "Shipment history",
+        },
+      ],
+    },
   },
   {
     slug: "juice",
@@ -287,6 +413,26 @@ export const PROJECTS: Project[] = [
       "Stripe-billed SaaS, JWT auth (python-jose + passlib)",
       "React 19 + Vite + TanStack Query + Recharts frontend",
     ],
+    demo: {
+      kind: "gallery",
+      images: [
+        {
+          src: "/work/juice/01-picks.webp",
+          alt: "Today's picks — model edges against sportsbook lines",
+          caption: "Today's picks",
+        },
+        {
+          src: "/work/juice/02-live.webp",
+          alt: "Live tracker — today's games tied to open positions",
+          caption: "Live tracker",
+        },
+        {
+          src: "/work/juice/03-player-stats.webp",
+          alt: "Player stats — recent-game log behind each pick",
+          caption: "Player stats",
+        },
+      ],
+    },
   },
 ];
 

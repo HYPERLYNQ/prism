@@ -1,5 +1,6 @@
 import type { ProjectDemo as ProjectDemoData } from "@/lib/projects";
 import type { Swatch } from "@/lib/looks";
+import ProjectGallery from "./ProjectGallery";
 
 /**
  * Demo embed slot on a project case study — renders a Loom screencast, MP4, or
@@ -23,6 +24,14 @@ export default function ProjectDemo({ demo, accent }: ProjectDemoProps) {
   if (!demo) return null;
 
   const style = { "--accent": accent.hex } as React.CSSProperties;
+
+  // Gallery — 2-3 product screenshots as an editorial figure set: lead shot
+  // full-width, the rest two-up. Captions reuse the meta-key voice (small
+  // mono caps) with an accent index mark; the optional note is the honest
+  // provenance line ("demo data", "identities blurred", …).
+  if (demo.kind === "gallery") {
+    return <ProjectGallery demo={demo} accent={accent} />;
+  }
 
   return (
     <section className="project-demo" style={style} aria-label="Product demo">

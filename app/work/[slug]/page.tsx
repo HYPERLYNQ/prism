@@ -73,7 +73,7 @@ export default async function ProjectPage({ params }: { params: Promise<RoutePar
   return (
     <main
       id="main"
-      className="project-page"
+      className="project-page project-page-banner"
       // Page-level accent — read by every nested rule (progress bar, status
       // badge, section numbers, stack chips, CTA card). Single source of truth
       // for the project's brand colour on the page.
