@@ -385,9 +385,11 @@ export function useHeroScene(
     // so the character art stays crisp while the solid backdrop fades in.
     let solidMix = 1;
     // First-load ASCII boot — the hero types itself in as characters, holds,
-    // then compiles to solid chrome. `booting` forces the ascii render path
-    // regardless of the (solid) default render mode until the compile finishes.
-    let booting = false;
+    // then compiles to solid chrome. `bootActive` is true from the moment the
+    // boot arms until the compile fully settles; `bootClock` advances the whole
+    // time. The per-frame `booting` (type-in + hold window) is derived from
+    // them in the loop. The boot forces the ascii render path until it settles.
+    let bootActive = false;
     let bootClock = 0;
     const BOOT_TYPE = 1.0; // asciiMix 0→1 (cells type in, left→right sweep)
     const BOOT_HOLD = 2.4; // full-ascii hold ends here; the compile dissolve begins
@@ -610,7 +612,7 @@ export function useHeroScene(
         // first-load reveal (cleaner than running both), so park the camera at
         // home. Skipped under reduced motion (those users get the static hero).
         if (!prefersReducedMotion) {
-          booting = true;
+          bootActive = true;
           bootClock = 0;
           asciiMix = 0;
           solidMix = 0; // start fully ascii; the compile fades the solid in
@@ -656,22 +658,19 @@ export function useHeroScene(
       const dt = Math.min(MAX_DT, timer.getDelta());
       const t = timer.getElapsed();
 
-      // ASCII dissolve — matches the prototype exactly. The boot drives the
-      // type-in (ease-out 0→1) and the hold (=1); once the hold ends, `booting`
-      // flips false and the SAME exponential the manual toggle uses eases
-      // asciiMix toward 0 — an open-ended compile dissolve, not a linear ramp.
-      if (booting) {
-        bootClock += dt;
-        if (bootClock < BOOT_TYPE) {
-          const k = bootClock / BOOT_TYPE;
-          asciiMix = 1 - (1 - k) * (1 - k); // ease-out type-in
-        } else if (bootClock < BOOT_HOLD) {
-          asciiMix = 1; // full-ascii hold
-        } else {
-          booting = false; // hold done — the compile dissolve runs via the ease below
-        }
-      }
-      if (!booting) {
+      // ASCII boot dissolve — structured EXACTLY like the prototype: the boot
+      // clock always advances (so the loader can run 0.8s past the hold), and
+      // `booting` is DERIVED from it (the type-in + hold window). After the
+      // hold, the same exponential the manual toggle uses eases asciiMix → 0
+      // (open-ended compile dissolve, not a linear ramp).
+      if (bootActive) bootClock += dt;
+      const booting = bootActive && bootClock < BOOT_HOLD;
+      if (bootActive && bootClock < BOOT_TYPE) {
+        const k = bootClock / BOOT_TYPE;
+        asciiMix = 1 - (1 - k) * (1 - k); // ease-out type-in
+      } else if (booting) {
+        asciiMix = 1; // full-ascii hold
+      } else {
         const asciiTarget = renderMode === "ascii" ? 1 : 0;
         asciiMix += (asciiTarget - asciiMix) * (1 - Math.exp(-6 * dt));
       }
@@ -681,20 +680,24 @@ export function useHeroScene(
       // prototype) instead of the ascii wiping off a full-opacity backdrop.
       const solidTarget = booting || renderMode === "ascii" ? 0 : 1;
       solidMix += (solidTarget - solidMix) * (1 - Math.exp(-6 * dt));
+      // Once the compile has settled, retire the boot so the clock stops.
+      if (bootActive && !booting && asciiMix < 0.004 && solidMix > 0.996) {
+        bootActive = false;
+      }
 
-      // Boot loader readout — the "boot ▸ shading ▓▓▓░ NN%" progress line that
-      // rides under the wordmark during the type-in + hold, then fades as the
-      // scene compiles to solid. Only ever active during the first-load boot
-      // (`booting` never re-arms), so the manual ascii toggle won't trigger it.
+      // Boot loader readout — "boot ▸ rasterizing/shading/compiled ▓▓░ NN%".
+      // Verbatim from the prototype: three phases, visible through the type-in
+      // + hold and for 0.8s into the compile (fading via opacity), then gone.
       if (bootRef.current) {
-        if (booting) {
+        if (bootActive && bootClock < BOOT_HOLD + 0.8) {
           const pct = Math.min(1, bootClock / BOOT_HOLD);
           const blocks = Math.round(pct * 14);
-          const phase = bootClock < BOOT_TYPE ? "rasterizing" : "shading";
+          const phase =
+            bootClock < BOOT_TYPE ? "rasterizing" : booting ? "shading" : "compiled";
           bootRef.current.textContent =
             `boot ▸ ${phase} ${"▓".repeat(blocks)}${"░".repeat(14 - blocks)} ` +
             `${String(Math.round(pct * 100)).padStart(3, " ")}%`;
-          bootRef.current.style.opacity = "1";
+          bootRef.current.style.opacity = booting ? "1" : "0";
         } else {
           bootRef.current.style.opacity = "0";
         }
