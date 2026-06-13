@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { PROJECTS } from "@/lib/projects";
 import { OWNER_EMAIL, OWNER_GITHUB, OWNER_LOCATION } from "@/lib/siteConfig";
@@ -30,6 +31,10 @@ export default function MastheadMobile({ activeTab, activeProject }: Props) {
   // Work section is collapsed by default. If the visitor is currently ON a
   // project page, default-expand so the active project is immediately visible.
   const [workOpen, setWorkOpen] = useState(Boolean(activeProject));
+  // The sheet is portalled to <body> (see the return) — only after mount, so SSR
+  // and the first client render match.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   // Lock body scroll while the sheet is up.
   useEffect(() => {
@@ -76,13 +81,23 @@ export default function MastheadMobile({ activeTab, activeProject }: Props) {
           and it's what this UI actually is. `inert` is supported in
           every modern browser (Safari 15.5+, Chrome 102+, Firefox 112+)
           and removes the panel from the AT tree + focus order when
-          closed, which is the correct semantics for a hidden disclosure. */}
-      <div
-        id="masthead-sheet"
-        className={`masthead-sheet${open ? " is-open" : ""}`}
-        aria-label="Menu"
-        inert={!open}
-      >
+          closed, which is the correct semantics for a hidden disclosure.
+
+          PORTALLED TO <body>: the sheet is `position: fixed`, but the
+          masthead it'd otherwise nest in has `backdrop-filter`, which makes
+          that header a containing block for fixed descendants on iOS WebKit
+          — anchoring the sheet to the top bar instead of the viewport (the
+          "menu drops from the top" bug). Rendering into <body> escapes the
+          masthead's containing block so `position: fixed` resolves against
+          the viewport on every engine. */}
+      {mounted &&
+        createPortal(
+          <div
+            id="masthead-sheet"
+            className={`masthead-sheet${open ? " is-open" : ""}`}
+            aria-label="Menu"
+            inert={!open}
+          >
         <button
           type="button"
           className="masthead-sheet-backdrop"
@@ -201,8 +216,10 @@ export default function MastheadMobile({ activeTab, activeProject }: Props) {
               <span className="masthead-sheet-loc">{OWNER_LOCATION}</span>
             </div>
           </section>
-        </div>
-      </div>
+            </div>
+          </div>,
+          document.body,
+        )}
     </>
   );
 }
