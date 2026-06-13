@@ -67,7 +67,12 @@ export function buildPhrase(
         cx += WORDMARK_SPACE;
         continue;
       }
-      const mesh = new THREE.Mesh(item.geo, material);
+      // Two-material array so the ASCII hybrid mode can render the front/back
+      // CAPS (group 0) as solid mirror faces while the extruded SIDES (group
+      // 1) stay ASCII. In every other mode both groups share one material, so
+      // this is identical to a single-material mesh. ExtrudeGeometry emits
+      // group 0 = caps, group 1 = sides.
+      const mesh = new THREE.Mesh(item.geo, [material, material]);
       mesh.layers.set(1); // own pass, drawn on top of debris (see sceneComposer)
       mesh.userData.home = new THREE.Vector3(cx + item.w * 0.5, baselineY, 0);
       mesh.userData.vel = new THREE.Vector3();
@@ -96,7 +101,9 @@ export function attachPhraseToRoot(
     mesh.position.copy(mesh.userData.home);
     mesh.rotation.set(0, 0, 0);
     mesh.scale.setScalar(1);
-    mesh.material = material;
+    // Both geometry groups (caps + sides) share the one material — see the
+    // note in buildPhrase. The ASCII hybrid overlay swaps these temporarily.
+    mesh.material = [material, material];
     wordRoot.add(mesh);
   }
 }

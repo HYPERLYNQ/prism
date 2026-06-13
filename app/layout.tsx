@@ -83,15 +83,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${grotesk.variable} ${mono.variable}`}>
       <head>
-        {/* Preload the hero's Helvetiker JSON typeface (~61 KB). Without this
-         * hint the browser only discovers the file after the Three.js bundle
-         * parses and calls FontLoader; preloading shaves that round-trip off
-         * the LCP-critical onReady gate on the home page. `as="fetch"` +
+        {/* Preload the hero's JSON typeface (JetBrains Mono ExtraBold, the
+         * site's own code face extruded into 3-D). Without this hint the
+         * browser only discovers the file after the Three.js bundle parses
+         * and calls FontLoader; preloading shaves that round-trip off the
+         * LCP-critical onReady gate on the home page. `as="fetch"` +
          * `crossOrigin="anonymous"` are correct because FontLoader is just
          * `fetch().then(json)` under the hood, not a CSS font request. */}
         <link
           rel="preload"
-          href="/fonts/helvetiker_bold.typeface.json"
+          href="/fonts/jetbrains-mono_extrabold.typeface.json"
           as="fetch"
           type="application/json"
           crossOrigin="anonymous"

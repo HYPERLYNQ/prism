@@ -12,7 +12,7 @@ import { useHeroScene } from "./hero/useHeroScene";
 import LookConsole from "./hero/LookConsole";
 import HomeBlurb from "./hero/HomeBlurb";
 import HomeCredentials from "./hero/HomeCredentials";
-import type { SceneApi } from "./hero/sceneTypes";
+import type { RenderMode, SceneApi } from "./hero/sceneTypes";
 
 /**
  * The landing-page hero — a WebGL scene of floating debris around a cycling
@@ -39,6 +39,11 @@ export default function Hero() {
   const [bgColorName, setBgColorName] = useState<string>(DEFAULT_SWATCH);
   const [heroColorName, setHeroColorName] = useState<string>("ink");
   const [debrisColorName, setDebrisColorName] = useState<string>("ink");
+
+  /* ── scene-console state — render mode + physics toggles ── */
+  const [renderMode, setRenderMode] = useState<RenderMode>("solid");
+  const [gravity, setGravity] = useState(false);
+  const [sloMo, setSloMo] = useState(false);
 
   /* ── UI flags ── */
   const [ready, setReady] = useState(false);
@@ -70,6 +75,31 @@ export default function Hero() {
   const pickDebris = useCallback((swatch: Swatch) => {
     setDebrisColorName(swatch.name);
     apiRef.current?.setDebrisColor(swatch);
+  }, []);
+
+  /* ── scene-console callbacks ── */
+  const pickRenderMode = useCallback((mode: RenderMode) => {
+    setRenderMode(mode);
+    apiRef.current?.setRenderMode(mode);
+  }, []);
+  const toggleGravity = useCallback(() => {
+    setGravity((on) => {
+      const next = !on;
+      apiRef.current?.setGravity(next);
+      // slo-mo only reads while something is falling — clear it with gravity.
+      if (!next) {
+        setSloMo(false);
+        apiRef.current?.setSloMo(false);
+      }
+      return next;
+    });
+  }, []);
+  const toggleSloMo = useCallback(() => {
+    setSloMo((on) => {
+      const next = !on;
+      apiRef.current?.setSloMo(next);
+      return next;
+    });
   }, []);
 
   /* ── current-selection hex lookups for the inline swatch dots in LookConsole ── */
@@ -125,10 +155,16 @@ export default function Hero() {
         bgHex={bgHex}
         heroHex={heroHex}
         debrisHex={debrisHex}
+        renderMode={renderMode}
+        gravity={gravity}
+        sloMo={sloMo}
         onPickFinish={pickFinish}
         onPickBg={pickBg}
         onPickHero={pickHero}
         onPickDebris={pickDebris}
+        onPickRenderMode={pickRenderMode}
+        onToggleGravity={toggleGravity}
+        onToggleSloMo={toggleSloMo}
       />
 
       {/* Bottom-right shipped-work credentials. */}

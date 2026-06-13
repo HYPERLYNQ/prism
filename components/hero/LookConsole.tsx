@@ -2,6 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import { FINISHES, SWATCHES, type MatName, type Swatch } from "@/lib/looks";
+import type { RenderMode } from "./sceneTypes";
+
+/** Render-mode chips, in display order. Mutually exclusive (radio). */
+const RENDER_MODES: { id: RenderMode; label: string }[] = [
+  { id: "solid", label: "solid" },
+  { id: "points", label: "points" },
+  { id: "ascii", label: "ascii" },
+];
 
 /**
  * Floating "Look" console — replaces the previous top-left look button +
@@ -29,10 +37,19 @@ type LookConsoleProps = {
   heroHex: string;
   /** Hex of the active debris tint. */
   debrisHex: string;
+  /** Active render mode — solid / points / ascii. */
+  renderMode: RenderMode;
+  /** Whether the debris is falling under gravity. */
+  gravity: boolean;
+  /** Whether scene-time slow motion is on (gated on gravity). */
+  sloMo: boolean;
   onPickFinish: (id: MatName) => void;
   onPickBg: (swatch: Swatch) => void;
   onPickHero: (swatch: Swatch) => void;
   onPickDebris: (swatch: Swatch) => void;
+  onPickRenderMode: (mode: RenderMode) => void;
+  onToggleGravity: () => void;
+  onToggleSloMo: () => void;
 };
 
 export default function LookConsole(props: LookConsoleProps) {
@@ -156,6 +173,48 @@ export default function LookConsole(props: LookConsoleProps) {
         <SwatchGrid label="bg" activeName={props.bgColorName} onPick={props.onPickBg} />
         <SwatchGrid label="hero" activeName={props.heroColorName} onPick={props.onPickHero} />
         <SwatchGrid label="debris" activeName={props.debrisColorName} onPick={props.onPickDebris} />
+
+        {/* Scene console — render mode + physics. Lives below the colour
+            picker, separated by a hairline rule; reuses the .lp-row / .mb
+            chip language so it reads as one continuous panel. */}
+        <div className="lp-divider" aria-hidden="true" />
+        <SwatchRow label="render">
+          <div className="lp-chips">
+            {RENDER_MODES.map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                className="mb"
+                aria-pressed={props.renderMode === m.id}
+                onClick={() => props.onPickRenderMode(m.id)}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
+        </SwatchRow>
+        <SwatchRow label="motion">
+          <div className="lp-chips">
+            <button
+              type="button"
+              className="mb"
+              aria-pressed={props.gravity}
+              onClick={props.onToggleGravity}
+            >
+              gravity
+            </button>
+            <button
+              type="button"
+              className="mb"
+              aria-pressed={props.sloMo}
+              disabled={!props.gravity}
+              title={props.gravity ? undefined : "needs gravity — nothing to slow otherwise"}
+              onClick={props.onToggleSloMo}
+            >
+              slo-mo
+            </button>
+          </div>
+        </SwatchRow>
       </div>
 
       {/* Console button — always visible, inline swatch dots show current

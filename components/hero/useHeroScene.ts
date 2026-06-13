@@ -52,7 +52,16 @@ import {
 } from "./sceneParticles";
 import { attachPhraseToRoot, buildPhrase } from "./sceneWordmark";
 import { setupComposer } from "./sceneComposer";
-import type { SceneApi } from "./sceneTypes";
+import {
+  buildPointsLayer,
+  rebakeDebrisPoints,
+  setDebrisPointsColor,
+  setHeroPointsColor,
+  type PointsLayer,
+} from "./scenePoints";
+import { buildAsciiPass } from "./sceneAscii";
+import { buildGravityField, updateGravity, type GravityField } from "./sceneGravity";
+import type { RenderMode, SceneApi } from "./sceneTypes";
 
 /**
  * The single useEffect that owns the entire three.js scene for the hero.
@@ -168,8 +177,34 @@ export function useHeroScene(
     const lookTarget = new THREE.Vector3(...LOOK_TARGET);
 
     const pmrem = new THREE.PMREMGenerator(renderer);
+    // Base studio env — unchanged from the original, shared by every finish so
+    // the default look is preserved exactly.
     const envRenderTarget = pmrem.fromScene(buildEnvScene(), 0.02);
     scene.environment = envRenderTarget.texture;
+
+    // A SECOND env, identical plus three HDR bars dead ahead, used ONLY by the
+    // ASCII hybrid's mirror letter-faces (assigned to faceMaterial.envMap
+    // below). The shared studio env puts its key light at the SIDES, leaving a
+    // gap straight ahead (+z) where camera-facing surfaces reflect — so the
+    // mirror faces would read flat grey without it. Kept off scene.environment
+    // so it never brightens the default chrome wordmark.
+    const faceEnvScene = buildEnvScene();
+    const addMirrorBar = (y: number, w: number, h: number, intensity: number) => {
+      const bar = new THREE.Mesh(
+        new THREE.PlaneGeometry(w, h),
+        new THREE.MeshBasicMaterial({
+          color: new THREE.Color(intensity, intensity, intensity * 1.04),
+          side: THREE.DoubleSide,
+        }),
+      );
+      bar.position.set(0, y, 9);
+      bar.lookAt(0, 0, 0);
+      faceEnvScene.add(bar);
+    };
+    addMirrorBar(4.2, 14, 1.1, 5.0);
+    addMirrorBar(0.6, 14, 0.5, 2.6);
+    addMirrorBar(-2.8, 14, 1.6, 3.8);
+    const faceEnvRenderTarget = pmrem.fromScene(faceEnvScene, 0.02);
 
     /* ── postprocessing ────────────────────────────────────────── */
     const { composer, bloomPass } = setupComposer(renderer, scene, camera, pixelRatio);
@@ -194,6 +229,31 @@ export function useHeroScene(
     // opaque so they don't fade with the letter dissolve envelope (they ARE
     // the dissolve — the letters are what fade).
     let particleMaterial = makePreset(matName, heroTintHex);
+
+    // ASCII hybrid overlay materials. `faceMaterial` is bright mirror chrome —
+    // the readable letter CAPS render solid on top of the ASCII body. `sideHide`
+    // is a no-paint material the overlay puts on the extrude SIDES so they stay
+    // ASCII (the cap pass draws nothing for them, letting the character art
+    // underneath show through).
+    const faceMaterial = makePreset("chrome", "#c9cdd6");
+    faceMaterial.transparent = true;
+    // Mirror faces reflect the bars-augmented env (not the scene's), so the
+    // reflections roll across them without touching the default chrome look.
+    faceMaterial.envMap = faceEnvRenderTarget.texture;
+    const sideHide = new THREE.MeshBasicMaterial({
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+    });
+
+    // ASCII render mode — a depth-aware post-process. Built upfront (only needs
+    // dimensions); the render loop routes through it when renderMode==="ascii".
+    const asciiPass = buildAsciiPass(
+      window.innerWidth,
+      window.innerHeight,
+      pixelRatio,
+      heroTintHex,
+    );
 
     /* ── debris cloud ──────────────────────────────────────────── */
     const debrisGroup = new THREE.Group();
@@ -235,7 +295,10 @@ export function useHeroScene(
       next.opacity = heroMaterial.opacity;
       const prev = heroMaterial;
       heroMaterial = next;
-      for (const meshes of phraseLetterMeshes) for (const m of meshes) m.material = heroMaterial;
+      // Both geometry groups (caps + sides) share the material in every mode
+      // except the ASCII hybrid overlay, which swaps them transiently.
+      for (const meshes of phraseLetterMeshes)
+        for (const m of meshes) m.material = [heroMaterial, heroMaterial];
       prev.dispose();
 
       const prevPart = particleMaterial;
@@ -256,6 +319,35 @@ export function useHeroScene(
       for (const mesh of debrisMeshes) mesh.material = debrisMaterial;
       prev.dispose();
     }
+
+    /* ── scene-console state (render mode + physics) ───────────── */
+    // Set via the imperative API; read by the render loop and the per-mode
+    // modules. `solid` is the default chrome render.
+    let renderMode: RenderMode = "solid";
+    let gravityOn = false;
+    let sloMoOn = false;
+    // ASCII glyph-cell visibility (0 = none, 1 = all). Eased toward 1 while
+    // ascii mode is active so toggling it on plays the type-in dissolve; the
+    // boot sequence drives it specially on first load.
+    let asciiMix = 0;
+    // First-load ASCII boot — the hero types itself in as characters, holds,
+    // then compiles to solid chrome. `booting` forces the ascii render path
+    // regardless of the (solid) default render mode until the compile finishes.
+    let booting = false;
+    let bootClock = 0;
+    const BOOT_TYPE = 1.0; // asciiMix 0→1 (cells type in, left→right sweep)
+    const BOOT_HOLD = 2.3; // full-ascii hold ends here; compile begins
+    const BOOT_END = 3.2; // fully solid; boot done
+    // Built lazily at font load (needs the phrase letter meshes). Null until then.
+    let pointsLayer: PointsLayer | null = null;
+    // Debris gravity field — snapshots every instance's resting matrix so the
+    // debris can fall and spring home. `settled` tracks whether the field is
+    // fully home so the loop can stop stepping it and resume breathing.
+    // `dbBreath` (0..1) eases the debris breathing amplitude to 0 while gravity
+    // is engaged so pieces fall along world-down, not the 17° breathing tilt.
+    const gravityField: GravityField = buildGravityField(debrisMeshes);
+    let gravitySettled = true;
+    let dbBreath = 1;
 
     /* ── scatter (click-the-wordmark interaction) ──────────────── */
     type Mode = "idle" | "scatter" | "regroup";
@@ -349,6 +441,7 @@ export function useHeroScene(
       camera.updateProjectionMatrix();
       renderer.setSize(w, h);
       composer.setSize(w, h);
+      asciiPass.setSize(w, h, pixelRatio);
       // Recompute the camera distance + cursor amplitude so resizing (rotating a
       // tablet, splitting a desktop window) keeps the wordmark in frame AND keeps
       // the parallax drama consistent.
@@ -379,10 +472,25 @@ export function useHeroScene(
       setHeroColor(swatch: Swatch) {
         heroTintHex = swatch.hex;
         rebuildHero();
+        if (pointsLayer) setHeroPointsColor(pointsLayer, heroTintHex);
+        asciiPass.setColor(heroTintHex);
       },
       setDebrisColor(swatch: Swatch) {
         debrisTintHex = swatch.hex;
         rebuildDebris();
+        if (pointsLayer) setDebrisPointsColor(pointsLayer, debrisTintHex);
+      },
+      // Scene-console setters. Behavior is wired into the render loop and the
+      // per-mode modules (sceneAscii / scenePoints / sceneGravity) as those
+      // land; these just record the requested state.
+      setRenderMode(next: RenderMode) {
+        renderMode = next;
+      },
+      setGravity(on: boolean) {
+        gravityOn = on;
+      },
+      setSloMo(on: boolean) {
+        sloMoOn = on;
       },
     };
 
@@ -424,7 +532,7 @@ export function useHeroScene(
     // WebGL failure — the static hero is a better last-resort than a
     // permanently-loading state. The third arg (onProgress) is unused.
     new FontLoader().load(
-      "/fonts/helvetiker_bold.typeface.json",
+      "/fonts/jetbrains-mono_extrabold.typeface.json",
       (loaded) => {
         if (disposed) return;
         font = loaded;
@@ -436,7 +544,40 @@ export function useHeroScene(
         }
         attachPhraseToRoot(wordRoot, phraseLetterMeshes[phraseIndex], heroMaterial);
         sceneReady = true;
+
+        // ASCII boot — the hero types itself in as characters, holds, then
+        // compiles to solid chrome. It replaces the camera swoop-in as the
+        // first-load reveal (cleaner than running both), so park the camera at
+        // home. Skipped under reduced motion (those users get the static hero).
+        if (!prefersReducedMotion) {
+          booting = true;
+          bootClock = 0;
+          asciiMix = 0;
+          camera.position.set(0, 0, baseZ);
+        }
+
         onReady();
+
+        // Points render mode — surface-sample every letter (all phrases) and
+        // every debris instance into dot clouds. Deferred off the critical
+        // path: the sampling is a chunky synchronous pass and points mode
+        // isn't needed in the first moments, so build it after first paint /
+        // the boot so neither the LCP nor the type-in stutters.
+        const buildPoints = () => {
+          if (disposed || pointsLayer) return;
+          pointsLayer = buildPointsLayer(
+            phraseLetterMeshes,
+            debrisMeshes,
+            heroTintHex,
+            debrisTintHex,
+          );
+          debrisGroup.add(pointsLayer.debrisPoints);
+        };
+        if (typeof requestIdleCallback === "function") {
+          requestIdleCallback(buildPoints, { timeout: 4000 });
+        } else {
+          setTimeout(buildPoints, 1200);
+        }
       },
       undefined,
       (err) => {
@@ -445,7 +586,7 @@ export function useHeroScene(
           typeof navigator !== "undefined" ? navigator.userAgent : "n/a";
         console.error(
           `[useHeroScene] FontLoader failed — showing static fallback.\n` +
-            `  url: /fonts/helvetiker_bold.typeface.json\n` +
+            `  url: /fonts/jetbrains-mono_extrabold.typeface.json\n` +
             `  userAgent: ${ua}\n` +
             `  error: ${err instanceof Error ? (err.stack ?? err.message) : String(err)}`,
         );
@@ -454,11 +595,47 @@ export function useHeroScene(
     );
 
     /* ── animation loop ────────────────────────────────────────── */
+    // The fast solid render — debris on layer 0 (clears colour + depth), then
+    // the wordmark + particle swarm on layer 1 with depth reset so the type
+    // always wins. Used for the default render and as the boot-compile backdrop.
+    function drawSolid(): void {
+      renderer.autoClear = true;
+      camera.layers.set(0);
+      renderer.render(scene, camera);
+      renderer.autoClear = false;
+      renderer.clearDepth();
+      camera.layers.set(1);
+      renderer.render(scene, camera);
+      renderer.autoClear = true;
+      camera.layers.enableAll();
+    }
+
     function animate(): void {
       raf = requestAnimationFrame(animate);
       timer.update();
       const dt = Math.min(MAX_DT, timer.getDelta());
       const t = timer.getElapsed();
+
+      // ASCII dissolve. During the first-load boot it follows the timeline
+      // (type-in → hold → compile); otherwise it eases toward fully-on while
+      // ascii mode is active so the manual toggle plays the type-in sweep.
+      if (booting) {
+        bootClock += dt;
+        if (bootClock < BOOT_TYPE) {
+          const k = bootClock / BOOT_TYPE;
+          asciiMix = 1 - (1 - k) * (1 - k); // ease-out type-in
+        } else if (bootClock < BOOT_HOLD) {
+          asciiMix = 1;
+        } else if (bootClock < BOOT_END) {
+          asciiMix = 1 - (bootClock - BOOT_HOLD) / (BOOT_END - BOOT_HOLD); // compile
+        } else {
+          booting = false;
+          asciiMix = 0;
+        }
+      } else {
+        const asciiTarget = renderMode === "ascii" ? 1 : 0;
+        asciiMix += (asciiTarget - asciiMix) * (1 - Math.exp(-7 * dt));
+      }
 
       // Whole-scene breathing — the debris cloud tumbles, the wordmark gently tilts.
       // The wordmark's Z-rotation deliberately re-uses `rx` (not `rz`) — this mirrors
@@ -468,11 +645,26 @@ export function useHeroScene(
       const rx = BREATH_AMP * Math.sin(0.7 * t);
       const ry = BREATH_AMP * Math.sin(0.3 * t);
       const rz = BREATH_AMP * Math.sin(0.2 * t);
-      debrisGroup.rotation.set(rx, ry, rz);
       wordRoot.rotation.set(rx, ry, rx);
       // Particle swarm sits in its own group; copy the wordmark's breathing
       // rotation so the swarm tracks the wordmark during transitions.
       particles.group.rotation.copy(wordRoot.rotation);
+
+      // ── debris gravity + breathing ────────────────────────────────
+      // While gravity is engaged the debris breathing eases to flat so pieces
+      // fall along true world-down (not the 17° breathing tilt); it eases back
+      // when released. `gravityEngaged` stays true through the spring-home so
+      // the field finishes settling before breathing resumes.
+      const gravityEngaged = gravityOn || !gravitySettled;
+      dbBreath += ((gravityEngaged ? 0 : 1) - dbBreath) * (1 - Math.exp(-5 * dt));
+      debrisGroup.rotation.set(rx * dbBreath, ry * dbBreath, rz * dbBreath);
+      if (gravityEngaged) {
+        const physDt = sloMoOn ? dt * 0.16 : dt;
+        gravitySettled = updateGravity(gravityField, physDt, gravityOn);
+        // In points mode the debris cloud is baked from rest matrices, so
+        // refresh it from the live (falling) instances.
+        if (renderMode === "points" && pointsLayer) rebakeDebrisPoints(pointsLayer);
+      }
 
       if (sceneReady) {
         if (mode === "idle" && prefersReducedMotion) {
@@ -615,7 +807,27 @@ export function useHeroScene(
             }
           }
         }
-        heroMaterial.opacity = Math.max(0, phraseOpacity);
+        // ── apply render mode (solid / points; ascii is a post-process at
+        //    render time) — points hides the solid surfaces and shows the
+        //    sampled clouds with the same opacity envelope. ──────────────
+        const op = Math.max(0, phraseOpacity);
+        if (renderMode === "points" && pointsLayer) {
+          heroMaterial.opacity = 0;
+          pointsLayer.heroMat.opacity = op;
+          pointsLayer.debrisMat.opacity = 1;
+          for (const p of pointsLayer.letterTwins) p.visible = true;
+          pointsLayer.debrisPoints.visible = true;
+          for (const m of debrisMeshes) m.visible = false;
+        } else {
+          heroMaterial.opacity = op;
+          if (pointsLayer) {
+            pointsLayer.heroMat.opacity = 0;
+            pointsLayer.debrisMat.opacity = 0;
+            for (const p of pointsLayer.letterTwins) p.visible = false;
+            pointsLayer.debrisPoints.visible = false;
+            for (const m of debrisMeshes) m.visible = true;
+          }
+        }
       }
 
       // Cursor → camera: big-amplitude swing in X/Y, Z fixed → automatic zoom + steep perspective.
@@ -623,24 +835,61 @@ export function useHeroScene(
       camera.position.y += CAM_FOLLOW * (mouseY - camera.position.y);
       camera.lookAt(lookTarget);
 
-      // Render. Only the neon finish needs the composer (for its bloom pass).
-      // Every other finish renders the two layers straight to the canvas — this
-      // skips the composer's offscreen render target + the full-screen OutputPass
-      // quad every frame, and lets the hardware MSAA (antialias:true) do the AA.
-      // The renderer's ACES tonemapping + sRGB output (set at init) match what
-      // OutputPass would have applied, so the image is visually equivalent.
-      if (bloomPass.enabled) {
+      // Render. Paths:
+      //   ascii / boot → scene → RT, then the depth-banded glyph quad. The
+      //                  boot compile draws the solid scene first as the
+      //                  backdrop the cells dissolve to reveal; steady ascii
+      //                  clears to bg and adds a mirror-cap overlay for
+      //                  readable faces.
+      //   neon         → composer (bloom pass).
+      //   else         → the fast two-layer straight-to-canvas render.
+      const asciiActive = (renderMode === "ascii" || booting) && sceneReady;
+      if (asciiActive) {
+        const wordDist = camera.position.length(); // wordmark sits at the origin
+        const compiling = booting && bootClock >= BOOT_HOLD;
+        // Boot compile: paint the solid scene first; the dissolving glyph cells
+        // reveal it. Type-in / hold / steady-ascii clear to bg instead.
+        if (compiling) drawSolid();
+        asciiPass.render(
+          renderer,
+          () => {
+            // Draw the world into the bound RT — one enable-all pass so the
+            // depth buffer is physically correct for the band slicing.
+            camera.layers.enableAll();
+            renderer.render(scene, camera);
+          },
+          wordDist,
+          asciiMix,
+          !compiling,
+        );
+
+        // Hybrid overlay — steady ascii only (not during the boot). Redraw the
+        // letter CAPS solid (mirror) over the ASCII with the extrude SIDES
+        // suppressed, so the body stays character art. Faces follow the
+        // dissolve envelope so a phrase transition melts them back to ASCII.
+        if (renderMode === "ascii" && !booting) {
+          const overlay = asciiMix * Math.max(0, phraseOpacity);
+          if (overlay > 0.004) {
+            faceMaterial.opacity = overlay;
+            for (const m of wordRoot.children) (m as THREE.Mesh).material = [faceMaterial, sideHide];
+            debrisGroup.visible = false;
+            particles.group.visible = false;
+            renderer.autoClear = false;
+            renderer.clearDepth();
+            camera.layers.set(1);
+            renderer.render(scene, camera);
+            renderer.autoClear = true;
+            camera.layers.enableAll();
+            for (const m of wordRoot.children)
+              (m as THREE.Mesh).material = [heroMaterial, heroMaterial];
+            debrisGroup.visible = true;
+            particles.group.visible = true;
+          }
+        }
+      } else if (bloomPass.enabled) {
         composer.render();
       } else {
-        renderer.autoClear = true;
-        camera.layers.set(0); // debris — clears colour + depth
-        renderer.render(scene, camera);
-        renderer.autoClear = false;
-        renderer.clearDepth(); // keep colour, reset depth so the wordmark wins
-        camera.layers.set(1); // wordmark + particle swarm, drawn on top
-        renderer.render(scene, camera);
-        renderer.autoClear = true;
-        camera.layers.enableAll();
+        drawSolid();
       }
     }
     // Loop runs for everyone. Reduced-motion users get a quieter version of it
@@ -660,11 +909,16 @@ export function useHeroScene(
       apiRef.current = null;
       for (const meshes of phraseLetterMeshes) for (const m of meshes) (m.geometry as THREE.BufferGeometry).dispose();
       for (const mesh of debrisMeshes) mesh.geometry.dispose();
+      pointsLayer?.dispose();
+      asciiPass.dispose();
       disposeParticleSystem(particles);
       heroMaterial.dispose();
       debrisMaterial.dispose();
       particleMaterial.dispose();
+      faceMaterial.dispose();
+      sideHide.dispose();
       envRenderTarget.dispose();
+      faceEnvRenderTarget.dispose();
       pmrem.dispose();
       composer.dispose();
       renderer.dispose();

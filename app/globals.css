@@ -244,6 +244,15 @@ body {
   flex-wrap: wrap;
   gap: 6px;
 }
+/* Section break between the colour picker and the scene console — a slightly
+ * stronger rule than the per-row hairline, with extra breathing room. It also
+ * interrupts the `.lp-row + .lp-row` adjacency so the scene rows below read as
+ * their own group. */
+.lp-divider {
+  height: 1px;
+  margin: 15px 0 2px;
+  background: var(--hair);
+}
 .lp-sw {
   display: grid;
   grid-template-columns: repeat(7, 14px);
@@ -287,7 +296,7 @@ body {
   text-align: center;
   transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
-.mb:hover {
+.mb:hover:not(:disabled) {
   color: var(--ink);
   border-color: var(--ink-3);
 }
@@ -295,6 +304,11 @@ body {
   color: var(--ink);
   border-color: var(--ink);
   background: color-mix(in srgb, var(--ink) 8%, transparent);
+}
+/* Disabled chip — e.g. slo-mo before gravity is engaged. */
+.mb:disabled {
+  opacity: 0.34;
+  cursor: not-allowed;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
