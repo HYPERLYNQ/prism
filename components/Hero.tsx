@@ -33,6 +33,7 @@ import type { RenderMode, SceneApi } from "./hero/sceneTypes";
 export default function Hero() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const apiRef = useRef<SceneApi | null>(null);
+  const bootRef = useRef<HTMLDivElement>(null);
 
   /* ── picker state — duplicated to React for rendering, pushed to the scene via apiRef ── */
   const [finish, setFinish] = useState<MatName>(DEFAULT_FINISH);
@@ -57,7 +58,7 @@ export default function Hero() {
     setWebglFailed(true);
     setReady(true);
   }, []);
-  useHeroScene(canvasRef, apiRef, handleReady, handleFirstMove, handleError);
+  useHeroScene(canvasRef, apiRef, handleReady, handleFirstMove, handleError, bootRef);
 
   /* ── picker callbacks — update both React state and the imperative scene API ── */
   const pickFinish = useCallback((id: MatName) => {
@@ -142,6 +143,10 @@ export default function Hero() {
 
       {/* Loader — fades when the scene reports ready. */}
       <div className={`hero-loader${ready ? " gone" : ""}`}>initializing</div>
+
+      {/* ASCII-boot progress readout — driven imperatively by the scene during
+          the first-load type-in + hold, then fades as it compiles to solid. */}
+      <div ref={bootRef} className="hero-boot" aria-hidden="true" />
 
       {/* Bottom-left blurb. */}
       <HomeBlurb />

@@ -2970,6 +2970,26 @@ body.dark .look-console-panel {
 }
 .hero-loader.gone { opacity: 0; pointer-events: none; }
 
+/* ASCII-boot progress readout — sits just below the wordmark during the
+ * first-load type-in + hold, then fades as the scene compiles to solid. Mono,
+ * tabular figures so the percentage doesn't jitter; the scene drives its text
+ * + opacity imperatively (see useHeroScene). */
+.hero-boot {
+  position: fixed;
+  left: 50%;
+  bottom: 22vh;
+  transform: translateX(-50%);
+  z-index: 5;
+  font: 500 11px/1 var(--font-mono), monospace;
+  letter-spacing: 0.14em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-3);
+  white-space: pre;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
 /* Account for the fixed masthead height: project pages, blog, work index, and
  * resume all start with a Masthead now; add top padding so content doesn't sit
  * under it. The home page leaves this padding to 0 (Hero uses position:fixed

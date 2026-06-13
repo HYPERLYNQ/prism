@@ -87,6 +87,7 @@ export function useHeroScene(
   onReady: () => void,
   onFirstMove: () => void,
   onError: () => void,
+  bootRef: RefObject<HTMLDivElement | null>,
 ): void {
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -361,8 +362,10 @@ export function useHeroScene(
     let booting = false;
     let bootClock = 0;
     const BOOT_TYPE = 1.0; // asciiMix 0→1 (cells type in, left→right sweep)
-    const BOOT_HOLD = 2.3; // full-ascii hold ends here; compile begins
-    const BOOT_END = 3.2; // fully solid; boot done
+    const BOOT_HOLD = 2.4; // full-ascii hold ends here; the compile dissolve begins
+    // After the hold, `booting` flips false and asciiMix eases toward 0 via the
+    // same exponential the manual toggle uses — an open-ended dissolve (no hard
+    // end), exactly like the prototype. `bootCompiling` stays true through it.
     // Built lazily at font load (needs the phrase letter meshes). Null until then.
     let pointsLayer: PointsLayer | null = null;
     // Debris gravity field — snapshots every instance's resting matrix so the
@@ -642,25 +645,42 @@ export function useHeroScene(
       const dt = Math.min(MAX_DT, timer.getDelta());
       const t = timer.getElapsed();
 
-      // ASCII dissolve. During the first-load boot it follows the timeline
-      // (type-in → hold → compile); otherwise it eases toward fully-on while
-      // ascii mode is active so the manual toggle plays the type-in sweep.
+      // ASCII dissolve — matches the prototype exactly. The boot drives the
+      // type-in (ease-out 0→1) and the hold (=1); once the hold ends, `booting`
+      // flips false and the SAME exponential the manual toggle uses eases
+      // asciiMix toward 0 — an open-ended compile dissolve, not a linear ramp.
       if (booting) {
         bootClock += dt;
         if (bootClock < BOOT_TYPE) {
           const k = bootClock / BOOT_TYPE;
           asciiMix = 1 - (1 - k) * (1 - k); // ease-out type-in
         } else if (bootClock < BOOT_HOLD) {
-          asciiMix = 1;
-        } else if (bootClock < BOOT_END) {
-          asciiMix = 1 - (bootClock - BOOT_HOLD) / (BOOT_END - BOOT_HOLD); // compile
+          asciiMix = 1; // full-ascii hold
         } else {
-          booting = false;
-          asciiMix = 0;
+          booting = false; // hold done — the compile dissolve runs via the ease below
         }
-      } else {
+      }
+      if (!booting) {
         const asciiTarget = renderMode === "ascii" ? 1 : 0;
-        asciiMix += (asciiTarget - asciiMix) * (1 - Math.exp(-7 * dt));
+        asciiMix += (asciiTarget - asciiMix) * (1 - Math.exp(-6 * dt));
+      }
+
+      // Boot loader readout — the "boot ▸ shading ▓▓▓░ NN%" progress line that
+      // rides under the wordmark during the type-in + hold, then fades as the
+      // scene compiles to solid. Only ever active during the first-load boot
+      // (`booting` never re-arms), so the manual ascii toggle won't trigger it.
+      if (bootRef.current) {
+        if (booting) {
+          const pct = Math.min(1, bootClock / BOOT_HOLD);
+          const blocks = Math.round(pct * 14);
+          const phase = bootClock < BOOT_TYPE ? "rasterizing" : "shading";
+          bootRef.current.textContent =
+            `boot ▸ ${phase} ${"▓".repeat(blocks)}${"░".repeat(14 - blocks)} ` +
+            `${String(Math.round(pct * 100)).padStart(3, " ")}%`;
+          bootRef.current.style.opacity = "1";
+        } else {
+          bootRef.current.style.opacity = "0";
+        }
       }
 
       // Whole-scene breathing — the debris cloud tumbles, the wordmark gently tilts.
@@ -893,12 +913,16 @@ export function useHeroScene(
       //                  readable faces.
       //   neon         → composer (bloom pass).
       //   else         → the fast two-layer straight-to-canvas render.
-      const asciiActive = (renderMode === "ascii" || booting) && sceneReady;
+      // `asciiMix > 0.004` keeps the path alive through the compile dissolve
+      // after `booting` flips false (and through a manual toggle-off dissolve).
+      const asciiActive = (renderMode === "ascii" || booting || asciiMix > 0.004) && sceneReady;
       if (asciiActive) {
         const wordDist = camera.position.length(); // wordmark sits at the origin
-        const compiling = booting && bootClock >= BOOT_HOLD;
-        // Boot compile: paint the solid scene first; the dissolving glyph cells
-        // reveal it. Type-in / hold / steady-ascii clear to bg instead.
+        // Compile = the cells are dissolving to reveal SOLID (boot compile or a
+        // manual ascii→solid toggle): paint the solid scene first as the
+        // backdrop. The boot type-in / hold (booting) and steady ascii clear to
+        // bg instead, so the cells type in over empty space, not over solid.
+        const compiling = !booting && renderMode !== "ascii" && asciiMix < 0.999;
         if (compiling) drawSolid();
         asciiPass.render(
           renderer,
