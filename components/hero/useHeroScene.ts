@@ -225,6 +225,10 @@ export function useHeroScene(
     heroMaterial.transparent = true;
     heroMaterial.opacity = 0;
     let debrisMaterial = makePreset(matName, debrisTintHex);
+    // Transparent so the boot/compile crossfade can fade the debris in with the
+    // wordmark. At opacity 1 (the steady state) this renders identically to an
+    // opaque material — depth is still written — so the default look is unchanged.
+    debrisMaterial.transparent = true;
 
     // Particle material: a parallel always-opaque clone of the hero finish.
     // Particles share the picked finish + colour with the wordmark, but stay
@@ -342,6 +346,7 @@ export function useHeroScene(
       debrisMaterial = matName === "neon"
         ? makeNeonDebrisMaterial(debrisTintHex)
         : makePreset(matName, debrisTintHex);
+      debrisMaterial.transparent = true; // see note at creation (crossfade)
       for (const mesh of debrisMeshes) mesh.material = debrisMaterial;
       prev.dispose();
     }
@@ -356,6 +361,11 @@ export function useHeroScene(
     // ascii mode is active so toggling it on plays the type-in dissolve; the
     // boot sequence drives it specially on first load.
     let asciiMix = 0;
+    // Solid-render opacity for the boot/compile crossfade (1 = full solid,
+    // 0 = fully ascii/hidden). Set to 0 when the boot arms; eased to 1 as it
+    // compiles. The ascii RT render always samples at FULL opacity regardless,
+    // so the character art stays crisp while the solid backdrop fades in.
+    let solidMix = 1;
     // First-load ASCII boot — the hero types itself in as characters, holds,
     // then compiles to solid chrome. `booting` forces the ascii render path
     // regardless of the (solid) default render mode until the compile finishes.
@@ -582,6 +592,7 @@ export function useHeroScene(
           booting = true;
           bootClock = 0;
           asciiMix = 0;
+          solidMix = 0; // start fully ascii; the compile fades the solid in
           camera.position.set(0, 0, baseZ);
         }
 
@@ -664,6 +675,12 @@ export function useHeroScene(
         const asciiTarget = renderMode === "ascii" ? 1 : 0;
         asciiMix += (asciiTarget - asciiMix) * (1 - Math.exp(-6 * dt));
       }
+      // Solid opacity for the crossfade. Held near 0 through the boot (and in
+      // steady ascii), eased to 1 as the scene compiles to solid — so the
+      // wordmark + debris FADE IN under the dissolving cells (matching the
+      // prototype) instead of the ascii wiping off a full-opacity backdrop.
+      const solidTarget = booting || renderMode === "ascii" ? 0 : 1;
+      solidMix += (solidTarget - solidMix) * (1 - Math.exp(-6 * dt));
 
       // Boot loader readout — the "boot ▸ shading ▓▓▓░ NN%" progress line that
       // rides under the wordmark during the type-in + hold, then fades as the
@@ -906,11 +923,13 @@ export function useHeroScene(
       camera.lookAt(lookTarget);
 
       // Render. Paths:
-      //   ascii / boot → scene → RT, then the depth-banded glyph quad. The
-      //                  boot compile draws the solid scene first as the
-      //                  backdrop the cells dissolve to reveal; steady ascii
-      //                  clears to bg and adds a mirror-cap overlay for
-      //                  readable faces.
+      //   ascii / boot → CROSSFADE: the solid scene is drawn at `solidMix`
+      //                  opacity (a faded backdrop that materialises during the
+      //                  compile), then the depth-banded glyph quad on top at
+      //                  `asciiMix`. The ascii RT is always sampled at FULL
+      //                  opacity so the character art stays crisp while the
+      //                  solid fades in. Steady ascii also adds the mirror-cap
+      //                  overlay for readable faces.
       //   neon         → composer (bloom pass).
       //   else         → the fast two-layer straight-to-canvas render.
       // `asciiMix > 0.004` keeps the path alive through the compile dissolve
@@ -918,12 +937,23 @@ export function useHeroScene(
       const asciiActive = (renderMode === "ascii" || booting || asciiMix > 0.004) && sceneReady;
       if (asciiActive) {
         const wordDist = camera.position.length(); // wordmark sits at the origin
-        // Compile = the cells are dissolving to reveal SOLID (boot compile or a
-        // manual ascii→solid toggle): paint the solid scene first as the
-        // backdrop. The boot type-in / hold (booting) and steady ascii clear to
-        // bg instead, so the cells type in over empty space, not over solid.
-        const compiling = !booting && renderMode !== "ascii" && asciiMix < 0.999;
-        if (compiling) drawSolid();
+        // 1. Solid backdrop at solidMix opacity (the crossfade's fade-in). Near
+        //    0 during the type-in / hold and in steady ascii → just clear to bg.
+        //    Eases to 1 as the scene compiles, so the wordmark + debris
+        //    materialise UNDER the dissolving cells rather than being wiped to.
+        if (solidMix > 0.004) {
+          const hOp = heroMaterial.opacity;
+          const dOp = debrisMaterial.opacity;
+          heroMaterial.opacity = hOp * solidMix;
+          debrisMaterial.opacity = dOp * solidMix;
+          drawSolid();
+          heroMaterial.opacity = hOp; // restore full for the ascii RT sample below
+          debrisMaterial.opacity = dOp;
+        } else {
+          renderer.clear();
+        }
+        // 2. ASCII overlay — RT sampled at FULL opacity (crisp), composited over
+        //    the backdrop without clearing it.
         asciiPass.render(
           renderer,
           () => {
@@ -934,7 +964,7 @@ export function useHeroScene(
           },
           wordDist,
           asciiMix,
-          !compiling,
+          false,
         );
 
         // Hybrid overlay — steady ascii only (not during the boot). Redraw the
