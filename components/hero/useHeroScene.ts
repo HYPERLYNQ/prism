@@ -220,6 +220,28 @@ export function useHeroScene(
     let heroTintHex = inkHex;
     let debrisTintHex = inkHex;
     let matName: MatName = DEFAULT_FINISH;
+    // Current background hex — tracked so the ASCII glyph colour can stay legible
+    // against whatever bg the picker selects. Defaults to the cream `--bg`.
+    let bgHex = "#FAFAF7";
+
+    /** Relative luminance (0 dark … 1 light) of a hex colour. */
+    const lumOf = (hex: string) => {
+      const c = new THREE.Color(hex);
+      return 0.299 * c.r + 0.587 * c.g + 0.114 * c.b;
+    };
+    /**
+     * Glyph colour for ASCII mode. The glyphs are monochrome and sit over the
+     * PAGE background (which the picker can change), so a dark hero tint on a
+     * dark bg would vanish. Prefer the hero tint when it contrasts the bg;
+     * otherwise fall back to a guaranteed-legible ink/cream so ASCII reads on
+     * any background.
+     */
+    const pickAsciiInk = () =>
+      Math.abs(lumOf(heroTintHex) - lumOf(bgHex)) > 0.3
+        ? heroTintHex
+        : lumOf(bgHex) > 0.5
+          ? "#15171C"
+          : "#F4F2EC";
 
     let heroMaterial = makePreset(matName, heroTintHex);
     heroMaterial.transparent = true;
@@ -258,7 +280,7 @@ export function useHeroScene(
       window.innerWidth,
       window.innerHeight,
       pixelRatio,
-      heroTintHex,
+      pickAsciiInk(),
     );
 
     /* ── debris cloud ──────────────────────────────────────────── */
@@ -521,18 +543,21 @@ export function useHeroScene(
         bloomPass.enabled = name === "neon";
       },
       setBgColor(swatch: Swatch) {
+        bgHex = swatch.hex;
         document.body.classList.toggle("dark", swatch.dark);
         document.documentElement.style.setProperty("--bg", swatch.hex);
         document.documentElement.style.setProperty("--bg-deep", swatch.deep);
         document.querySelector('meta[name="theme-color"]')?.setAttribute("content", swatch.hex);
         renderer.toneMappingExposure = swatch.dark ? 1.18 : 1.0;
+        // Re-derive the ASCII glyph colour so it stays legible over the new bg.
+        asciiPass.setColor(pickAsciiInk());
       },
       setHeroColor(swatch: Swatch) {
         heroTintHex = swatch.hex;
         rebuildHero();
         if (pointsLayer) setHeroPointsColor(pointsLayer, heroTintHex);
         swarmPointsMat.color.set(heroTintHex);
-        asciiPass.setColor(heroTintHex);
+        asciiPass.setColor(pickAsciiInk());
       },
       setDebrisColor(swatch: Swatch) {
         debrisTintHex = swatch.hex;

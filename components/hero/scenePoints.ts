@@ -25,9 +25,9 @@ import { MeshSurfaceSampler } from "three/addons/math/MeshSurfaceSampler.js";
 /** Sampled points per letter glyph — dense enough to read the letterform.
  *  Matches the prototype value. */
 const LETTER_SAMPLES = 1400;
-/** Sampled points per debris instance — enough that each piece reads as its
- *  shape (the prototype sampled ~350 per shape; matched here per instance). */
-const DEBRIS_SAMPLES = 280;
+/** Sampled points per debris instance — matches the prototype's 350-per-shape
+ *  density so each piece reads as its shape, not a sparse smatter. */
+const DEBRIS_SAMPLES = 350;
 
 /** Round, soft-edged dot sprite. Hard `gl_Points` squares are a big part of
  *  why naive point clouds read as noise; a radial-alpha sprite fixes it.
