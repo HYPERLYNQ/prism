@@ -967,12 +967,19 @@ export function useHeroScene(
           false,
         );
 
-        // Hybrid overlay — steady ascii only (not during the boot). Redraw the
-        // letter CAPS solid (mirror) over the ASCII with the extrude SIDES
-        // suppressed, so the body stays character art. Faces follow the
-        // dissolve envelope so a phrase transition melts them back to ASCII.
-        if (renderMode === "ascii" && !booting) {
-          const overlay = asciiMix * Math.max(0, phraseOpacity);
+        // Hybrid overlay — redraw the letter CAPS solid (mirror) over the
+        // ASCII with the extrude SIDES suppressed, so the body stays character
+        // art. Runs in steady ascii AND during the boot: after the type-in the
+        // faces RESOLVE IN (ramp over 0.5s), so the boot reads pure-ascii →
+        // reflective faces over ascii body → full solid — matching the
+        // prototype. `faceRamp` is the boot resolve; in steady ascii it's 1.
+        // Because the overlay is ∝ asciiMix, the faces fade out as the compile
+        // dissolves the cells and the full solid fades in beneath.
+        if (renderMode === "ascii" || booting) {
+          const faceRamp = booting
+            ? Math.min(1, Math.max(0, (bootClock - BOOT_TYPE) / 0.5))
+            : 1;
+          const overlay = asciiMix * Math.max(0, phraseOpacity) * faceRamp;
           if (overlay > 0.004) {
             faceMaterial.opacity = overlay;
             for (const m of wordRoot.children) (m as THREE.Mesh).material = [faceMaterial, sideHide];
