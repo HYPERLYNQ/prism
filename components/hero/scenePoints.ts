@@ -22,12 +22,35 @@ import { MeshSurfaceSampler } from "three/addons/math/MeshSurfaceSampler.js";
  * and recoloured by the host when the hero / debris tint changes.
  */
 
-/** Sampled points per letter glyph — dense enough to read the letterform.
- *  Matches the prototype value. */
-const LETTER_SAMPLES = 1400;
+/** Sampled points per letter glyph — dense enough that the letterform still
+ *  reads when the cursor parallax swings the camera to a steep grazing angle
+ *  and the glyph foreshortens (denser than the prototype's 1400 for that). */
+const LETTER_SAMPLES = 1600;
 /** Sampled points per debris instance — matches the prototype's 350-per-shape
  *  density so each piece reads as its shape, not a sparse smatter. */
 const DEBRIS_SAMPLES = 350;
+
+/**
+ * Floor `gl_PointSize` at `minDevicePx` so size-attenuated dots can't shrink to
+ * sub-pixel and vanish when the cursor parallax swings the camera out to ~2×
+ * distance. Attenuation stays ON (dots track the wordmark's apparent size, so
+ * density-relative-to-letterform is constant → readable at any distance, never
+ * a merged blob), and this just clamps the far tail so the cloud never
+ * disappears. `<logdepthbuf_vertex>` is a stable chunk placeholder present in
+ * every Three points shader, injected right after the attenuation math.
+ */
+export function applyMinPointSize(mat: THREE.PointsMaterial, minDevicePx: number): void {
+  mat.onBeforeCompile = (shader) => {
+    shader.uniforms.uMinPx = { value: minDevicePx };
+    shader.vertexShader =
+      "uniform float uMinPx;\n" +
+      shader.vertexShader.replace(
+        "#include <logdepthbuf_vertex>",
+        "\tgl_PointSize = max( gl_PointSize, uMinPx );\n\t#include <logdepthbuf_vertex>",
+      );
+  };
+  mat.needsUpdate = true;
+}
 
 /** Round, soft-edged dot sprite. Hard `gl_Points` squares are a big part of
  *  why naive point clouds read as noise; a radial-alpha sprite fixes it.
@@ -36,9 +59,15 @@ export function makeDotTexture(): THREE.CanvasTexture {
   const c = document.createElement("canvas");
   c.width = c.height = 64;
   const ctx = c.getContext("2d")!;
+  // Solid opaque core with only an antialiased rim — NOT a soft falloff sprite.
+  // The old soft gradient kept most of each dot's area at low alpha, so on a
+  // saturated mid-tone bg the cloud only painted ~40% coverage and washed out
+  // (you couldn't read the wordmark). A flat core paints the contrast-ink
+  // colour at full strength, so the letterforms stay legible on any bg, while
+  // the 25% feathered rim keeps the dots round instead of hard GL squares.
   const g = ctx.createRadialGradient(32, 32, 0, 32, 32, 30);
   g.addColorStop(0, "rgba(255,255,255,1)");
-  g.addColorStop(0.55, "rgba(255,255,255,0.9)");
+  g.addColorStop(0.75, "rgba(255,255,255,1)");
   g.addColorStop(1, "rgba(255,255,255,0)");
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, 64, 64);
@@ -94,6 +123,7 @@ export function buildPointsLayer(
   debrisMeshes: THREE.InstancedMesh[],
   heroTintHex: string,
   debrisTintHex: string,
+  dpr: number,
 ): PointsLayer {
   const dotTex = makeDotTexture();
   const mkMat = (hex: string, size: number) =>
@@ -106,8 +136,12 @@ export function buildPointsLayer(
       opacity: 0,
       depthWrite: false,
     });
-  const heroMat = mkMat(heroTintHex, 3.4);
-  const debrisMat = mkMat(debrisTintHex, 3.4);
+  const heroMat = mkMat(heroTintHex, 4.0);
+  const debrisMat = mkMat(debrisTintHex, 3.8);
+  // Clamp the far tail so neither cloud shrinks to nothing at the parallax
+  // extremes (~1.8 css px floor; gl_PointSize is device px → scale by dpr).
+  applyMinPointSize(heroMat, 1.8 * dpr);
+  applyMinPointSize(debrisMat, 1.5 * dpr);
 
   // Wordmark twins — one Points child per letter, on layer 1, hidden by default.
   const letterTwins: THREE.Points[] = [];
@@ -121,6 +155,10 @@ export function buildPointsLayer(
       const pts = new THREE.Points(cloud, heroMat);
       pts.layers.set(1);
       pts.visible = false;
+      // Never frustum-cull: the per-letter bounding sphere is tiny and rides a
+      // moving parent (scatter throw + breathing), so a stale world-bounds test
+      // can wrongly cull a twin mid-swing and pop the dots out.
+      pts.frustumCulled = false;
       letter.add(pts);
       letterTwins.push(pts);
     }
@@ -153,6 +191,7 @@ export function buildPointsLayer(
   const debrisPoints = new THREE.Points(debrisGeo, debrisMat);
   debrisPoints.layers.set(0);
   debrisPoints.visible = false;
+  debrisPoints.frustumCulled = false;
 
   return {
     heroMat,

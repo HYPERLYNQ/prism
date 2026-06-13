@@ -161,10 +161,7 @@ body {
   pointer-events: none;
   background:
     radial-gradient(rgba(255, 255, 255, 0.04) 0.5px, transparent 0.7px) 0 0 / 3px 3px,
-    radial-gradient(ellipse 75% 65% at 50% 42%,
-      color-mix(in srgb, var(--bg) 92%, white) 0%,
-      var(--bg) 38%,
-      var(--bg-deep) 100%);
+    var(--bg);
 }
 .hero-canvas {
   position: fixed;

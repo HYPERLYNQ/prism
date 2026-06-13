@@ -53,6 +53,7 @@ import {
 import { attachPhraseToRoot, buildPhrase } from "./sceneWordmark";
 import { setupComposer } from "./sceneComposer";
 import {
+  applyMinPointSize,
   buildPointsLayer,
   makeDotTexture,
   rebakeDebrisPoints,
@@ -224,25 +225,46 @@ export function useHeroScene(
     // against whatever bg the picker selects. Defaults to the cream `--bg`.
     let bgHex = "#FAFAF7";
 
-    /** Relative luminance (0 dark … 1 light) of a hex colour. */
+    /** sRGB channels [0..1] of a hex colour. */
+    const srgbOf = (hex: string): [number, number, number] => {
+      const h = hex.replace("#", "");
+      return [
+        parseInt(h.slice(0, 2), 16) / 255,
+        parseInt(h.slice(2, 4), 16) / 255,
+        parseInt(h.slice(4, 6), 16) / 255,
+      ];
+    };
+    /** Perceptual (sRGB) luminance, 0 dark … 1 light, of a hex colour. From the
+     *  sRGB bytes directly — NOT via THREE.Color, whose .r/.g/.b are LINEAR under
+     *  colour management. Linear compresses mid-tones (gold-leaf reads 0.37 linear
+     *  vs 0.62 perceptual), which skewed this contrast test and let low-contrast
+     *  tints like white-on-gold slip through as "legible". */
     const lumOf = (hex: string) => {
-      const c = new THREE.Color(hex);
-      return 0.299 * c.r + 0.587 * c.g + 0.114 * c.b;
+      const [r, g, b] = srgbOf(hex);
+      return 0.299 * r + 0.587 * g + 0.114 * b;
     };
     /**
      * Legible colour for a flat-coloured overlay (ASCII glyphs, point clouds)
-     * tinted `tintHex` sitting over the current page bg. These render as a
-     * single flat colour, so a dark tint on a dark bg (or light-on-light) would
-     * vanish. Keep the tint when it contrasts the bg; otherwise fall back to a
-     * guaranteed-legible ink / cream. The solid chrome render doesn't need this
-     * (it reflects the env and reads on any bg).
+     * tinted `tintHex` over the current page bg. A *saturated* tint that also
+     * clears the bg by a solid luminance margin is a deliberate, readable colour
+     * pick — keep it. Everything else (neutral white/grey/ink tints, or a colour
+     * that's too close to the bg) falls back to WHITE on any colourful or dark
+     * bg, and BLACK only on a light *neutral* bg (grey / white / off-white) where
+     * white would vanish. So the dots read white over every colour and only turn
+     * to ink against greys. The solid chrome render doesn't need this.
      */
-    const pickContrastInk = (tintHex: string) =>
-      Math.abs(lumOf(tintHex) - lumOf(bgHex)) > 0.3
-        ? tintHex
-        : lumOf(bgHex) > 0.5
-          ? "#15171C"
-          : "#F4F2EC";
+    const INK_DARK = "#15171C";
+    const INK_LIGHT = "#F4F2EC";
+    const pickContrastInk = (tintHex: string) => {
+      const bgL = lumOf(bgHex);
+      const tint = srgbOf(tintHex);
+      const tintChroma = Math.max(...tint) - Math.min(...tint);
+      if (tintChroma > 0.12 && Math.abs(lumOf(tintHex) - bgL) > 0.45) return tintHex;
+      const bg = srgbOf(bgHex);
+      const bgChroma = Math.max(...bg) - Math.min(...bg);
+      const lightNeutralBg = bgChroma < 0.12 && bgL > 0.5;
+      return lightNeutralBg ? INK_DARK : INK_LIGHT;
+    };
 
     let heroMaterial = makePreset(matName, heroTintHex);
     heroMaterial.transparent = true;
@@ -314,18 +336,22 @@ export function useHeroScene(
     const swarmDotTex = makeDotTexture();
     const swarmPointsMat = new THREE.PointsMaterial({
       color: new THREE.Color(heroTintHex),
-      size: 3.4,
+      size: 4.0,
       map: swarmDotTex,
       sizeAttenuation: true,
       transparent: true,
       opacity: 1,
       depthWrite: false,
     });
+    // Match the wordmark twins: floor the far tail so the dissolving cloud
+    // doesn't shrink to nothing at the parallax extremes either.
+    applyMinPointSize(swarmPointsMat, 1.8 * pixelRatio);
     const swarmPointsGeo = new THREE.BufferGeometry();
     swarmPointsGeo.setAttribute("position", new THREE.BufferAttribute(particles.cur, 3));
     const swarmPoints = new THREE.Points(swarmPointsGeo, swarmPointsMat);
     swarmPoints.layers.set(1); // same layer as the wordmark + solid swarm
     swarmPoints.visible = false;
+    swarmPoints.frustumCulled = false; // moving cloud — don't pop on a stale bounds test
     particles.group.add(swarmPoints);
 
     let font: Font | null = null;
@@ -388,6 +414,7 @@ export function useHeroScene(
         debrisMeshes,
         pickContrastInk(heroTintHex),
         pickContrastInk(debrisTintHex),
+        pixelRatio,
       );
       debrisGroup.add(pointsLayer.debrisPoints);
     }
