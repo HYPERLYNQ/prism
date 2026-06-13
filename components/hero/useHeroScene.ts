@@ -350,6 +350,24 @@ export function useHeroScene(
       for (const mesh of debrisMeshes) mesh.material = debrisMaterial;
       prev.dispose();
     }
+    /**
+     * Points render mode is surface-sampled (a chunky synchronous pass that
+     * builds dot clouds for every letter of every phrase + every debris
+     * instance). Built LAZILY on first use — never on load — so the ~70k-sample
+     * pass can't stall a frame during the ASCII boot animation. The one-time
+     * hitch lands on the user's first `points` click instead, where it reads
+     * as the mode loading rather than the intro stuttering.
+     */
+    function buildPointsIfNeeded(): void {
+      if (pointsLayer || !sceneReady || phraseLetterMeshes.length === 0) return;
+      pointsLayer = buildPointsLayer(
+        phraseLetterMeshes,
+        debrisMeshes,
+        heroTintHex,
+        debrisTintHex,
+      );
+      debrisGroup.add(pointsLayer.debrisPoints);
+    }
 
     /* ── scene-console state (render mode + physics) ───────────── */
     // Set via the imperative API; read by the render loop and the per-mode
@@ -523,6 +541,9 @@ export function useHeroScene(
       // per-mode modules (sceneAscii / scenePoints / sceneGravity) as those
       // land; these just record the requested state.
       setRenderMode(next: RenderMode) {
+        // Build the point clouds the first time points mode is entered (never
+        // on load — keeps the boot animation hitch-free).
+        if (next === "points") buildPointsIfNeeded();
         renderMode = next;
       },
       setGravity(on: boolean) {
@@ -597,27 +618,6 @@ export function useHeroScene(
         }
 
         onReady();
-
-        // Points render mode — surface-sample every letter (all phrases) and
-        // every debris instance into dot clouds. Deferred off the critical
-        // path: the sampling is a chunky synchronous pass and points mode
-        // isn't needed in the first moments, so build it after first paint /
-        // the boot so neither the LCP nor the type-in stutters.
-        const buildPoints = () => {
-          if (disposed || pointsLayer) return;
-          pointsLayer = buildPointsLayer(
-            phraseLetterMeshes,
-            debrisMeshes,
-            heroTintHex,
-            debrisTintHex,
-          );
-          debrisGroup.add(pointsLayer.debrisPoints);
-        };
-        if (typeof requestIdleCallback === "function") {
-          requestIdleCallback(buildPoints, { timeout: 4000 });
-        } else {
-          setTimeout(buildPoints, 1200);
-        }
       },
       undefined,
       (err) => {
@@ -941,12 +941,16 @@ export function useHeroScene(
         //    0 during the type-in / hold and in steady ascii → just clear to bg.
         //    Eases to 1 as the scene compiles, so the wordmark + debris
         //    materialise UNDER the dissolving cells rather than being wiped to.
+        //    Single enable-all pass (matches the prototype, and one render
+        //    instead of the two-layer drawSolid — lighter during the boot).
         if (solidMix > 0.004) {
           const hOp = heroMaterial.opacity;
           const dOp = debrisMaterial.opacity;
           heroMaterial.opacity = hOp * solidMix;
           debrisMaterial.opacity = dOp * solidMix;
-          drawSolid();
+          renderer.autoClear = true;
+          camera.layers.enableAll();
+          renderer.render(scene, camera);
           heroMaterial.opacity = hOp; // restore full for the ascii RT sample below
           debrisMaterial.opacity = dOp;
         } else {
