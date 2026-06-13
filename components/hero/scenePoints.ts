@@ -22,14 +22,17 @@ import { MeshSurfaceSampler } from "three/addons/math/MeshSurfaceSampler.js";
  * and recoloured by the host when the hero / debris tint changes.
  */
 
-/** Sampled points per letter glyph — dense enough to read the letterform. */
-const LETTER_SAMPLES = 1200;
-/** Sampled points per debris instance — the field is big, so keep each piece light. */
-const DEBRIS_SAMPLES = 64;
+/** Sampled points per letter glyph — dense enough to read the letterform.
+ *  Matches the prototype value. */
+const LETTER_SAMPLES = 1400;
+/** Sampled points per debris instance — enough that each piece reads as its
+ *  shape (the prototype sampled ~350 per shape; matched here per instance). */
+const DEBRIS_SAMPLES = 280;
 
 /** Round, soft-edged dot sprite. Hard `gl_Points` squares are a big part of
- *  why naive point clouds read as noise; a radial-alpha sprite fixes it. */
-function makeDotTexture(): THREE.CanvasTexture {
+ *  why naive point clouds read as noise; a radial-alpha sprite fixes it.
+ *  Exported so the dissolve-swarm points twin can share the exact look. */
+export function makeDotTexture(): THREE.CanvasTexture {
   const c = document.createElement("canvas");
   c.width = c.height = 64;
   const ctx = c.getContext("2d")!;
@@ -103,8 +106,8 @@ export function buildPointsLayer(
       opacity: 0,
       depthWrite: false,
     });
-  const heroMat = mkMat(heroTintHex, 4.2);
-  const debrisMat = mkMat(debrisTintHex, 4.2);
+  const heroMat = mkMat(heroTintHex, 3.4);
+  const debrisMat = mkMat(debrisTintHex, 3.4);
 
   // Wordmark twins — one Points child per letter, on layer 1, hidden by default.
   const letterTwins: THREE.Points[] = [];

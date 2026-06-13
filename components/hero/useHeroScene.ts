@@ -54,6 +54,7 @@ import { attachPhraseToRoot, buildPhrase } from "./sceneWordmark";
 import { setupComposer } from "./sceneComposer";
 import {
   buildPointsLayer,
+  makeDotTexture,
   rebakeDebrisPoints,
   setDebrisPointsColor,
   setHeroPointsColor,
@@ -275,6 +276,30 @@ export function useHeroScene(
     // rotation copied to it each frame so it tracks the wordmark.
     const particles = buildParticleSystem(particleMaterial);
     scene.add(particles.group);
+
+    // Dissolve-swarm POINTS twin — in points mode the phrase transition should
+    // disperse as dots too (not solid chrome shards). A Points object reads the
+    // particle system's live `cur` buffer directly (same memory updateParticles
+    // mutates), parented to the swarm group so it shares the breathing tilt.
+    // Shown only while the solid swarm is active; the solid mesh is suppressed
+    // via colorWrite/depthWrite in points mode (see the render-mode block).
+    const swarmDotTex = makeDotTexture();
+    const swarmPointsMat = new THREE.PointsMaterial({
+      color: new THREE.Color(heroTintHex),
+      size: 3.4,
+      map: swarmDotTex,
+      sizeAttenuation: true,
+      transparent: true,
+      opacity: 1,
+      depthWrite: false,
+    });
+    const swarmPointsGeo = new THREE.BufferGeometry();
+    swarmPointsGeo.setAttribute("position", new THREE.BufferAttribute(particles.cur, 3));
+    const swarmPoints = new THREE.Points(swarmPointsGeo, swarmPointsMat);
+    swarmPoints.layers.set(1); // same layer as the wordmark + solid swarm
+    swarmPoints.visible = false;
+    particles.group.add(swarmPoints);
+
     let font: Font | null = null;
     let sceneReady = false;
     let phraseIndex = 0;
@@ -473,6 +498,7 @@ export function useHeroScene(
         heroTintHex = swatch.hex;
         rebuildHero();
         if (pointsLayer) setHeroPointsColor(pointsLayer, heroTintHex);
+        swarmPointsMat.color.set(heroTintHex);
         asciiPass.setColor(heroTintHex);
       },
       setDebrisColor(swatch: Swatch) {
@@ -811,15 +837,39 @@ export function useHeroScene(
         //    render time) — points hides the solid surfaces and shows the
         //    sampled clouds with the same opacity envelope. ──────────────
         const op = Math.max(0, phraseOpacity);
-        if (renderMode === "points" && pointsLayer) {
+        const inPoints = renderMode === "points";
+        if (inPoints) {
+          // The solid letters host the point twins as children, so we can't
+          // just hide the meshes (that would hide the points too). Instead stop
+          // the solid surface painting AND writing depth — otherwise the
+          // invisible caps occlude the point cloud behind them (the streaky,
+          // half-missing look). The point twins keep their own depthWrite:false.
           heroMaterial.opacity = 0;
-          pointsLayer.heroMat.opacity = op;
-          pointsLayer.debrisMat.opacity = 1;
-          for (const p of pointsLayer.letterTwins) p.visible = true;
-          pointsLayer.debrisPoints.visible = true;
-          for (const m of debrisMeshes) m.visible = false;
+          heroMaterial.colorWrite = false;
+          heroMaterial.depthWrite = false;
+          if (pointsLayer) {
+            pointsLayer.heroMat.opacity = op;
+            pointsLayer.debrisMat.opacity = 1;
+            for (const p of pointsLayer.letterTwins) p.visible = true;
+            pointsLayer.debrisPoints.visible = true;
+            for (const m of debrisMeshes) m.visible = false;
+          }
+          // Dissolve swarm as points: suppress the solid shards (colorWrite /
+          // depthWrite off, like the letters) and show the Points twin while a
+          // transition is running, syncing it from the live particle buffer.
+          particleMaterial.colorWrite = false;
+          particleMaterial.depthWrite = false;
+          swarmPoints.visible = particles.mesh.visible;
+          if (swarmPoints.visible) {
+            (swarmPointsGeo.getAttribute("position") as THREE.BufferAttribute).needsUpdate = true;
+          }
         } else {
           heroMaterial.opacity = op;
+          heroMaterial.colorWrite = true;
+          heroMaterial.depthWrite = true;
+          particleMaterial.colorWrite = true;
+          particleMaterial.depthWrite = true;
+          swarmPoints.visible = false;
           if (pointsLayer) {
             pointsLayer.heroMat.opacity = 0;
             pointsLayer.debrisMat.opacity = 0;
@@ -911,6 +961,9 @@ export function useHeroScene(
       for (const mesh of debrisMeshes) mesh.geometry.dispose();
       pointsLayer?.dispose();
       asciiPass.dispose();
+      swarmPointsGeo.dispose();
+      swarmPointsMat.dispose();
+      swarmDotTex.dispose();
       disposeParticleSystem(particles);
       heroMaterial.dispose();
       debrisMaterial.dispose();

@@ -245,12 +245,13 @@ body {
   gap: 6px;
 }
 /* Section break between the colour picker and the scene console — a slightly
- * stronger rule than the per-row hairline, with extra breathing room. It also
+ * stronger rule than the per-row hairline, with equal breathing room above and
+ * below so neither the debris swatches nor the render chips crowd it. It also
  * interrupts the `.lp-row + .lp-row` adjacency so the scene rows below read as
  * their own group. */
 .lp-divider {
   height: 1px;
-  margin: 15px 0 2px;
+  margin: 16px 0;
   background: var(--hair);
 }
 .lp-sw {
