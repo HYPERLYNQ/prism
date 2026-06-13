@@ -230,15 +230,16 @@ export function useHeroScene(
       return 0.299 * c.r + 0.587 * c.g + 0.114 * c.b;
     };
     /**
-     * Glyph colour for ASCII mode. The glyphs are monochrome and sit over the
-     * PAGE background (which the picker can change), so a dark hero tint on a
-     * dark bg would vanish. Prefer the hero tint when it contrasts the bg;
-     * otherwise fall back to a guaranteed-legible ink/cream so ASCII reads on
-     * any background.
+     * Legible colour for a flat-coloured overlay (ASCII glyphs, point clouds)
+     * tinted `tintHex` sitting over the current page bg. These render as a
+     * single flat colour, so a dark tint on a dark bg (or light-on-light) would
+     * vanish. Keep the tint when it contrasts the bg; otherwise fall back to a
+     * guaranteed-legible ink / cream. The solid chrome render doesn't need this
+     * (it reflects the env and reads on any bg).
      */
-    const pickAsciiInk = () =>
-      Math.abs(lumOf(heroTintHex) - lumOf(bgHex)) > 0.3
-        ? heroTintHex
+    const pickContrastInk = (tintHex: string) =>
+      Math.abs(lumOf(tintHex) - lumOf(bgHex)) > 0.3
+        ? tintHex
         : lumOf(bgHex) > 0.5
           ? "#15171C"
           : "#F4F2EC";
@@ -280,7 +281,7 @@ export function useHeroScene(
       window.innerWidth,
       window.innerHeight,
       pixelRatio,
-      pickAsciiInk(),
+      pickContrastInk(heroTintHex),
     );
 
     /* ── debris cloud ──────────────────────────────────────────── */
@@ -385,8 +386,8 @@ export function useHeroScene(
       pointsLayer = buildPointsLayer(
         phraseLetterMeshes,
         debrisMeshes,
-        heroTintHex,
-        debrisTintHex,
+        pickContrastInk(heroTintHex),
+        pickContrastInk(debrisTintHex),
       );
       debrisGroup.add(pointsLayer.debrisPoints);
     }
@@ -549,20 +550,26 @@ export function useHeroScene(
         document.documentElement.style.setProperty("--bg-deep", swatch.deep);
         document.querySelector('meta[name="theme-color"]')?.setAttribute("content", swatch.hex);
         renderer.toneMappingExposure = swatch.dark ? 1.18 : 1.0;
-        // Re-derive the ASCII glyph colour so it stays legible over the new bg.
-        asciiPass.setColor(pickAsciiInk());
+        // Re-derive every flat-overlay colour (ascii glyphs + point clouds) so
+        // they stay legible over the new bg.
+        asciiPass.setColor(pickContrastInk(heroTintHex));
+        if (pointsLayer) {
+          setHeroPointsColor(pointsLayer, pickContrastInk(heroTintHex));
+          setDebrisPointsColor(pointsLayer, pickContrastInk(debrisTintHex));
+        }
+        swarmPointsMat.color.set(pickContrastInk(heroTintHex));
       },
       setHeroColor(swatch: Swatch) {
         heroTintHex = swatch.hex;
         rebuildHero();
-        if (pointsLayer) setHeroPointsColor(pointsLayer, heroTintHex);
-        swarmPointsMat.color.set(heroTintHex);
-        asciiPass.setColor(pickAsciiInk());
+        if (pointsLayer) setHeroPointsColor(pointsLayer, pickContrastInk(heroTintHex));
+        swarmPointsMat.color.set(pickContrastInk(heroTintHex));
+        asciiPass.setColor(pickContrastInk(heroTintHex));
       },
       setDebrisColor(swatch: Swatch) {
         debrisTintHex = swatch.hex;
         rebuildDebris();
-        if (pointsLayer) setDebrisPointsColor(pointsLayer, debrisTintHex);
+        if (pointsLayer) setDebrisPointsColor(pointsLayer, pickContrastInk(debrisTintHex));
       },
       // Scene-console setters. Behavior is wired into the render loop and the
       // per-mode modules (sceneAscii / scenePoints / sceneGravity) as those
