@@ -2980,14 +2980,18 @@ body.dark .look-console-panel {
   bottom: 22vh;
   transform: translateX(-50%);
   z-index: 5;
-  font: 500 11px/1 var(--font-mono), monospace;
+  /* SYSTEM monospace — not the site's JetBrains Mono. The ▓/░ block glyphs in
+   * the progress bar render solid and edge-to-edge in ui-monospace/Consolas
+   * (a continuous terminal bar); JetBrains Mono draws them with gaps, breaking
+   * the bar. Matches the prototype exactly. */
+  font: 500 11px/1 ui-monospace, "Cascadia Mono", Consolas, monospace;
   letter-spacing: 0.14em;
   font-variant-numeric: tabular-nums;
-  color: var(--ink-3);
+  color: rgba(10, 14, 20, 0.55);
   white-space: pre;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.5s ease;
+  transition: opacity 600ms ease;
 }
 
 /* Account for the fixed masthead height: project pages, blog, work index, and
