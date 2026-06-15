@@ -4,6 +4,7 @@ import { OWNER_NAME, OWNER_ROLE } from "@/lib/siteConfig";
 import MastheadContact from "./MastheadContact";
 import MastheadMobile from "./MastheadMobile";
 import MastheadScrollSentry from "./MastheadScrollSentry";
+import MastheadWork from "./MastheadWork";
 
 /**
  * The site-wide top masthead. Replaces the previous corner-overlay system
@@ -57,16 +58,11 @@ export default function Masthead({ activeTab, activeProject }: MastheadProps) {
       </div>
 
       <nav className="masthead-tabs" aria-label="Primary">
-        <Link
-          href="/work"
-          className={`masthead-tab${activeTab === "work" ? " is-active" : ""}`}
-        >
-          <span className="masthead-tab-label">Work</span>
-          <span className="masthead-tab-meta">{projectCount}</span>
-          {activeProject && (
-            <span className="masthead-tab-suffix">/ {activeProject}</span>
-          )}
-        </Link>
+        <MastheadWork
+          active={activeTab === "work"}
+          activeProject={activeProject}
+          count={projectCount}
+        />
         <Link
           href="/blog"
           className={`masthead-tab${activeTab === "writing" ? " is-active" : ""}`}

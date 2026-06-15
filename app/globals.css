@@ -2187,6 +2187,102 @@ html.is-scrolled .masthead {
 }
 .masthead-contact-static { cursor: default; color: var(--ink-2); }
 
+/* Work tab + hover/focus dropdown ─────────────────────────────────────────
+ * Mirrors the Contact dropdown's surface (bg panel, hairline, soft shadow) but
+ * is revealed on hover/focus rather than click, and left-anchored since Work is
+ * the leftmost tab. Lets visitors jump straight to a project without loading
+ * the /work index first. */
+.masthead-work { position: relative; display: flex; }
+.masthead-work-menu {
+  position: absolute;
+  top: calc(100% + 14px);
+  left: -10px;
+  width: min(440px, 70vw);
+  background: var(--bg);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--hair);
+  box-shadow: 0 18px 40px -24px rgba(10, 14, 20, 0.18);
+  z-index: 5;
+  animation: masthead-work-in 0.16s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+/* Transparent bridge across the trigger→panel gap so the pointer never lands
+ * in dead space and drops the menu mid-travel. */
+.masthead-work-menu::before {
+  content: "";
+  position: absolute;
+  top: -16px;
+  left: 0;
+  right: 0;
+  height: 16px;
+}
+@keyframes masthead-work-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+.masthead-work-item {
+  display: grid;
+  grid-template-columns: 22px max-content 1fr;
+  align-items: baseline;
+  gap: 12px;
+  text-decoration: none;
+  color: var(--ink);
+  padding: 8px 10px;
+  border-radius: 6px;
+  line-height: 1;
+  transition: background 0.14s ease;
+}
+.masthead-work-item:hover,
+.masthead-work-item:focus-visible {
+  background: color-mix(in srgb, var(--ink) 5%, transparent);
+  outline: none;
+}
+.masthead-work-item.is-active {
+  background: color-mix(in srgb, var(--ink) 7%, transparent);
+}
+.masthead-work-num {
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+.masthead-work-item.is-active .masthead-work-num { color: var(--accent, var(--ink)); }
+.masthead-work-name {
+  font-family: var(--font-grotesk), sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+}
+.masthead-work-tag {
+  min-width: 0;
+  font-size: 11.5px;
+  color: var(--ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.masthead-work-all {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 6px;
+  padding: 9px 10px 5px;
+  border-top: 1px solid var(--hair);
+  text-decoration: none;
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--ink-2);
+  transition: color 0.14s ease;
+}
+.masthead-work-all:hover,
+.masthead-work-all:focus-visible { color: var(--ink); outline: none; }
+@media (prefers-reduced-motion: reduce) {
+  .masthead-work-menu { animation: none; }
+}
+
 /* Mobile hamburger — hidden by default at desktop; shown at ≤820px. */
 .masthead-burger {
   display: none;
