@@ -2671,8 +2671,9 @@ html.is-scrolled .masthead {
  * .home-cred declarations. */
 
 /* ═════════════════════════════════════════════════════════════════════════
- * HOME CREDENTIALS — bottom-right shipped-work credentials
- * (Was .hero-cred in the old layout, top-right under the status badge.)
+ * HOME CONTACT — bottom-right quick contact links (email + GitHub)
+ * (Class kept as `.home-cred*` so the bottom-band responsive cascade below is
+ * unchanged; it previously held shipped-work credentials — see HomeContact.tsx.)
  * ═════════════════════════════════════════════════════════════════════════ */
 .home-cred {
   position: fixed;
@@ -3101,24 +3102,37 @@ body.dark .look-console-panel {
 }
 .hero-loader.gone { opacity: 0; pointer-events: none; }
 
-/* ASCII-boot progress readout — sits just below the wordmark during the
- * first-load type-in + hold, then fades as the scene compiles to solid. Mono,
- * tabular figures so the percentage doesn't jitter; the scene drives its text
- * + opacity imperatively (see useHeroScene). */
+/* ASCII-boot progress readout — a status chip pinned just under the masthead,
+ * top-centre. It used to sit mid-screen (bottom:22vh), right over the wordmark
+ * and lost in the ASCII field. Top-centre is the one region that stays empty
+ * once the scene is ready (blurb + contact own the bottom-left, the look-console
+ * owns the bottom-centre, contact the bottom-right >1280px) — so a slow boot
+ * never collides with that chrome — and it clears the centred wordmark. A faint
+ * backdrop lifts it off the dissolving characters so it reads as an obvious
+ * loader. The scene drives its text + opacity imperatively (see useHeroScene). */
 .hero-boot {
   position: fixed;
   left: 50%;
-  bottom: 22vh;
+  top: 74px;
   transform: translateX(-50%);
-  z-index: 5;
+  z-index: 6;
+  display: inline-flex;
+  align-items: center;
+  padding: 9px 15px;
+  border: 1px solid var(--hair);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg) 80%, transparent);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 12px 32px -22px rgba(10, 14, 20, 0.3);
   /* SYSTEM monospace — not the site's JetBrains Mono. The ▓/░ block glyphs in
    * the progress bar render solid and edge-to-edge in ui-monospace/Consolas
    * (a continuous terminal bar); JetBrains Mono draws them with gaps, breaking
    * the bar. Matches the prototype exactly. */
-  font: 500 11px/1 ui-monospace, "Cascadia Mono", Consolas, monospace;
-  letter-spacing: 0.14em;
+  font: 600 12px/1 ui-monospace, "Cascadia Mono", Consolas, monospace;
+  letter-spacing: 0.12em;
   font-variant-numeric: tabular-nums;
-  color: rgba(10, 14, 20, 0.55);
+  color: var(--ink-2);
   white-space: pre;
   pointer-events: none;
   opacity: 0;
