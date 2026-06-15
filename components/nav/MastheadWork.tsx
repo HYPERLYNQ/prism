@@ -105,7 +105,7 @@ export default function MastheadWork({ active, activeProject, count }: Props) {
                   {String(i + 1).padStart(2, "0")}
                 </span>
                 <span className="masthead-work-name">{project.name}</span>
-                <span className="masthead-work-tag">{project.tagline}</span>
+                <span className="masthead-work-year">{project.year}</span>
               </Link>
             );
           })}
