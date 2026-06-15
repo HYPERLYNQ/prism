@@ -5,7 +5,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { jsxDEV as _jsxDEV } from "react/jsx-dev-runtime";
+// Recovered code was emitted against the dev JSX runtime (`jsxDEV`), which
+// production builds don't expose as callable — prerendering /proto threw
+// "jsxDEV is not a function" and aborted the whole build. Shim it onto the
+// production runtime: the extra dev args (isStaticChildren/source/self) are
+// ignored, and `jsx` handles array children fine, so render is identical.
+import { jsx as _jsx } from "react/jsx-runtime";
+const _jsxDEV = (type, props, key) => _jsx(type, props, key);
 import * as THREE from "three";
 import { FontLoader } from "three/addons/loaders/FontLoader.js";
 import { MeshSurfaceSampler } from "three/addons/math/MeshSurfaceSampler.js";
