@@ -114,7 +114,7 @@ export const PROJECTS: Project[] = [
     slug: "synaptic",
     name: "synaptic",
     tagline: "Persistent, file-based memory for Claude Code — context that survives across sessions.",
-    year: "2025–26",
+    year: "2026",
     role: "Solo",
     accent: "chartreuse",
     stack: [
@@ -166,7 +166,7 @@ export const PROJECTS: Project[] = [
     slug: "wholesale-harmony",
     name: "wholesale-harmony",
     tagline: "Multi-tenant B2B customer-approval + wholesale-pricing SaaS for Shopify. Live in the App Store.",
-    year: "2024–26",
+    year: "2025–26",
     role: "Solo — founder, engineer, shipped to App Store",
     accent: "deep-teal",
     stack: [
@@ -230,7 +230,7 @@ export const PROJECTS: Project[] = [
     name: "sonar",
     tagline:
       "Autonomous B2B intent monitoring + outreach — a multi-stage LLM pipeline with human-in-the-loop approval.",
-    year: "2025–26",
+    year: "2026",
     role: "Solo — design, build, ship",
     accent: "burnt-orange",
     stack: [
@@ -281,7 +281,7 @@ export const PROJECTS: Project[] = [
     slug: "fever",
     name: "fever",
     tagline: "AI content-viralization SaaS — score videos for break-out potential before they pop.",
-    year: "2025",
+    year: "2026",
     role: "Solo",
     accent: "oxblood",
     stack: [
@@ -332,7 +332,7 @@ export const PROJECTS: Project[] = [
     slug: "hotship",
     name: "hotship",
     tagline: "Desktop shipping app for high-volume solo shippers — purpose-built UI over the Shippo API.",
-    year: "2025–26",
+    year: "2026",
     role: "Solo — desktop app",
     accent: "aubergine",
     stack: [
@@ -386,7 +386,7 @@ export const PROJECTS: Project[] = [
     slug: "juice",
     name: "juice",
     tagline: "NBA betting-intelligence SaaS — ML predictions, line shopping, bankroll tracking.",
-    year: "2024–25",
+    year: "2026",
     role: "Solo — full stack + ML",
     accent: "gold-leaf",
     stack: [
