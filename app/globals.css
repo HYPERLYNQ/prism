@@ -671,6 +671,22 @@ body {
   object-position: top center;
   display: block;
 }
+/* Inner ring over the image — the gallery sits on a light page and some
+ * screenshots are near-white (e.g. the synaptic "quick start" capture), so an
+ * outer hairline alone lets them dissolve into the background and read as an
+ * empty box. A faint inset edge + top sheen rides above the image so any frame,
+ * however light, keeps a defined boundary. */
+.pg-frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 1;
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--ink) 14%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #ffffff 22%, transparent);
+}
 .pg-cap {
   display: flex;
   align-items: baseline;
@@ -2481,7 +2497,29 @@ html.is-scrolled .masthead {
   transform: none;
   transition-delay: 0.5s;
 }
+/* Legibility scrim — the blurb floats over the live 3D field, and when debris
+ * or the wordmark drifts behind it the per-glyph text-shadow alone can't hold
+ * contrast (worst on mobile, where the type is smallest and the scene fills
+ * more of the frame). A feathered wash of the page bg, anchored to the text's
+ * bottom-left origin and faded toward the open corner, guarantees a readable
+ * ground without drawing a hard panel around the copy. */
+.home-blurb::before {
+  content: "";
+  position: absolute;
+  inset: -16px -28px -18px -20px;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(
+    120% 135% at 10% 86%,
+    color-mix(in srgb, var(--bg) 86%, transparent) 0%,
+    color-mix(in srgb, var(--bg) 64%, transparent) 46%,
+    transparent 78%
+  );
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+}
 .home-blurb p {
+  position: relative;
   font: 500 11.5px/1.65 var(--font-mono), monospace;
   color: var(--ink-2);
   text-shadow: 0 0 8px var(--bg);

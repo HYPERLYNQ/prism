@@ -66,7 +66,7 @@ export default async function BlogIndex() {
         </div>
       </PageEnter>
 
-      <footer className="project-page-footer">Mike Vidal · Miami · open to remote</footer>
+      <footer className="project-page-footer">Mike Vidal · Miami · open to remote + freelance</footer>
     </main>
   );
 }

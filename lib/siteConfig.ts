@@ -25,7 +25,7 @@ export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://mikevidal.
 export const SITE_NAME = "Mike Vidal";
 export const OWNER_NAME = "Mike Vidal";
 export const OWNER_ROLE = "AI Engineer";
-export const OWNER_LOCATION = "Miami · open to remote";
+export const OWNER_LOCATION = "Miami · open to remote + freelance";
 export const OWNER_EMAIL = "michael@kromeandco.com";
 export const OWNER_GITHUB = "https://github.com/HYPERLYNQ";
 

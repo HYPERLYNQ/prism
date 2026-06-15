@@ -90,7 +90,7 @@ export default async function BlogPost({ params }: { params: Promise<RouteParams
         </article>
       </PageEnter>
 
-      <footer className="project-page-footer">Mike Vidal · Miami · open to remote</footer>
+      <footer className="project-page-footer">Mike Vidal · Miami · open to remote + freelance</footer>
     </main>
   );
 }

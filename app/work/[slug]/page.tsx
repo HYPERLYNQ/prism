@@ -110,7 +110,7 @@ export default async function ProjectPage({ params }: { params: Promise<RoutePar
       </ProjectAnimator>
 
       <footer className="project-page-footer">
-        Mike Vidal · Miami · open to remote
+        Mike Vidal · Miami · open to remote + freelance
       </footer>
     </main>
   );

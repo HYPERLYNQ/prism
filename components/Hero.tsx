@@ -117,7 +117,7 @@ export default function Hero() {
       {/* Crawlable description — the hero's value-prop phrases are WebGL geometry,
           not DOM text, so without this the home page has almost no indexable copy. */}
       <p className="sr-only">
-        Applied-AI engineer based in Miami, open to remote. I ship LLM-powered
+        Applied-AI engineer based in Miami, open to remote roles and freelance. I ship LLM-powered
         systems to production — multi-stage pipelines, tool-use, structured
         output, and human-in-the-loop workflows — building real, deployed
         products rather than demos.
