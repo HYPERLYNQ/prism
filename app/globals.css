@@ -2607,12 +2607,14 @@ html.is-scrolled .masthead {
   pointer-events: none;
   background: radial-gradient(
     120% 135% at 10% 86%,
-    color-mix(in srgb, var(--bg) 86%, transparent) 0%,
-    color-mix(in srgb, var(--bg) 64%, transparent) 46%,
-    transparent 78%
+    color-mix(in srgb, var(--bg) 90%, transparent) 0%,
+    color-mix(in srgb, var(--bg) 70%, transparent) 46%,
+    transparent 80%
   );
-  -webkit-backdrop-filter: blur(2px);
-  backdrop-filter: blur(2px);
+  /* No backdrop-filter: a blurred box has a hard rectangular edge that reads as
+   * a visible "container" and collides with the contact scrim where the two
+   * stack. The translucent page-bg gradient carries legibility on its own and
+   * fades softly, so overlapping washes just blend instead of boxing. */
 }
 .home-blurb p {
   position: relative;
@@ -2709,12 +2711,12 @@ html.is-scrolled .masthead {
   pointer-events: none;
   background: radial-gradient(
     130% 150% at 50% 68%,
-    color-mix(in srgb, var(--bg) 86%, transparent) 0%,
-    color-mix(in srgb, var(--bg) 62%, transparent) 50%,
+    color-mix(in srgb, var(--bg) 90%, transparent) 0%,
+    color-mix(in srgb, var(--bg) 68%, transparent) 50%,
     transparent 80%
   );
-  -webkit-backdrop-filter: blur(2px);
-  backdrop-filter: blur(2px);
+  /* No backdrop-filter — see .home-blurb::before. The blur's hard box edge is
+   * what made the two scrims read as overlapping containers. */
 }
 
 /* ─── Home bottom-band tier rules (Spacious / Tight / Mobile / Short) ───
