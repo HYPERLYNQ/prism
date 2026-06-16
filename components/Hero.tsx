@@ -11,7 +11,7 @@ import {
 import { useHeroScene } from "./hero/useHeroScene";
 import LookConsole from "./hero/LookConsole";
 import HomeBlurb from "./hero/HomeBlurb";
-import HomeContact from "./hero/HomeContact";
+import HomeInquiry from "./hero/HomeInquiry";
 import type { RenderMode, SceneApi } from "./hero/sceneTypes";
 
 /**
@@ -20,7 +20,7 @@ import type { RenderMode, SceneApi } from "./hero/sceneTypes";
  *
  *   • Bottom-left:    HomeBlurb — plain-language pitch
  *   • Bottom-center:  LookConsole — picker for finish + bg + hero + debris tints
- *   • Bottom-right:   HomeContact — quick email + GitHub contact links
+ *   • Bottom-right:   HomeInquiry — project-inquiry lead capture (email a brief)
  *
  * The Masthead at the top of the page is rendered by `app/page.tsx`, not by
  * Hero — Hero only owns what sits IN the WebGL canvas's viewport.
@@ -172,8 +172,8 @@ export default function Hero() {
         onToggleSloMo={toggleSloMo}
       />
 
-      {/* Bottom-right quick contact — email + GitHub. */}
-      <HomeContact />
+      {/* Bottom-right project-inquiry lead capture. */}
+      <HomeInquiry />
     </main>
   );
 }

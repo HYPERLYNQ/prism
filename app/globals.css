@@ -2671,9 +2671,10 @@ html.is-scrolled .masthead {
  * .home-cred declarations. */
 
 /* ═════════════════════════════════════════════════════════════════════════
- * HOME CONTACT — bottom-right quick contact links (email + GitHub)
- * (Class kept as `.home-cred*` so the bottom-band responsive cascade below is
- * unchanged; it previously held shipped-work credentials — see HomeContact.tsx.)
+ * HOME INQUIRY — bottom-right project-inquiry lead form
+ * (Container class kept as `.home-cred` so the bottom-band responsive cascade
+ * below is unchanged; the form itself is styled via `.home-inq*`. Previously
+ * held shipped-work credentials, then contact links — see HomeInquiry.tsx.)
  * ═════════════════════════════════════════════════════════════════════════ */
 .home-cred {
   position: fixed;
@@ -2723,12 +2724,14 @@ html.is-scrolled .masthead {
  * Playwright at viewports 1500/1100/900/750/600/400 — the previous
  * placement above .home-cred silently lost the cascade). */
 
-/* TIGHT — ≤1280px. Blurb lifts. Cred rotates from right-anchored to
- * left-anchored, stacked under the blurb. Picker pill owns the
- * bottom-centre on its own row. */
+/* TIGHT — ≤1280px. Blurb lifts. Inquiry rotates from right-anchored to
+ * left-anchored, stacked under the blurb. Picker pill owns the bottom-centre
+ * on its own row. Blurb sits at 220px (not 165px) to clear the inquiry FORM,
+ * which is ~105px tall at bottom:90px — much taller than the old credential
+ * block it replaced, which the 165px value was tuned for. */
 @media (max-width: 1280px) {
   .home-blurb {
-    bottom: calc(165px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(220px + env(safe-area-inset-bottom, 0px));
     max-width: min(56ch, calc(100vw - 60px));
   }
   .home-blurb p {
@@ -2770,38 +2773,87 @@ html.is-scrolled .masthead {
   }
 }
 
-.home-cred-row {
-  position: relative;
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0;
-  font: 500 11px/1.9 var(--font-mono), monospace;
+/* Project-inquiry form (HomeInquiry) — uses the .home-cred container for
+ * position + scrim, but overrides its right-align so the inputs read
+ * left-to-right and the block keeps a steady width in both anchors. */
+.home-inq {
+  align-items: stretch;
+  text-align: left;
+  width: min(264px, calc(100vw - 48px));
+}
+.home-inq-form { display: flex; flex-direction: column; gap: 9px; }
+.home-inq-head { display: flex; align-items: center; gap: 7px; }
+.home-inq-dot {
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ink);
+  animation: masthead-status-pulse 1.9s infinite ease-in-out;
+}
+.home-inq-label {
+  font: 500 10px/1.3 var(--font-mono), monospace;
   letter-spacing: 0.04em;
   color: var(--ink-2);
-  text-decoration: none;
 }
-.home-cred-name { color: var(--ink); }
-.home-cred-sep { color: var(--ink-3); margin: 0 6px; }
-.home-cred-venue { color: var(--ink-2); }
-.home-cred-ver { color: var(--ink-3); }
-.home-cred-arr {
-  font-size: 10px;
-  color: var(--ink-3);
-  margin-left: 6px;
-  transition: transform 0.18s ease, color 0.18s ease;
+.home-inq-input {
+  width: 100%;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--hair);
+  padding: 6px 0;
+  font: 500 11.5px/1.4 var(--font-mono), monospace;
+  letter-spacing: 0.01em;
+  color: var(--ink);
+  transition: border-color 0.15s ease;
 }
-.home-cred-row:hover .home-cred-name { color: var(--ink); }
-.home-cred-row:hover .home-cred-venue { color: var(--ink); }
-.home-cred-row:hover .home-cred-arr { transform: translate(2px, -2px); color: var(--ink); }
-.home-cred-more {
-  margin-top: 5px;
-  font: 500 9.5px/1.4 var(--font-mono), monospace;
-  letter-spacing: 0.04em;
-  color: var(--ink-3);
-  text-decoration: none;
-  transition: color 0.18s ease;
+.home-inq-input::placeholder { color: var(--ink-3); }
+.home-inq-input:focus { outline: none; border-bottom-color: var(--ink); }
+.home-inq-row { display: flex; align-items: flex-end; gap: 10px; }
+.home-inq-email { flex: 1 1 auto; min-width: 0; }
+.home-inq-send {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--hair);
+  border-radius: 50%;
+  background: var(--bg);
+  color: var(--ink);
+  font: 500 14px/1 var(--font-mono), monospace;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
 }
-.home-cred-more:hover { color: var(--ink-2); }
+.home-inq-send:hover:not(:disabled) { border-color: var(--ink); transform: translateY(-1px); }
+.home-inq-send:active:not(:disabled) { transform: translateY(0); }
+.home-inq-send:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.home-inq-send:disabled { opacity: 0.5; cursor: default; }
+/* Honeypot — removed from view + the AT tree, but present in the DOM for bots. */
+.home-inq-hp {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+.home-inq-done {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font: 500 11.5px/1.5 var(--font-mono), monospace;
+  color: var(--ink);
+}
+.home-inq-err {
+  margin: 1px 0 0;
+  font: 500 10px/1.45 var(--font-mono), monospace;
+  color: color-mix(in srgb, var(--ink) 65%, #b91c1c);
+}
+.home-inq-err a { color: var(--ink); text-decoration: underline; text-underline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .home-inq-dot { animation: none; }
+}
 
 /* `.home-cred { display: none }` for narrow viewports lives in the
  * consolidated home-bottom-band cascade above (TIGHT tier, ≤1099px).
