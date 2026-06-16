@@ -2756,12 +2756,12 @@ html.is-scrolled .masthead {
   }
 }
 
-/* MOBILE — ≤600px. Cred hidden entirely. Blurb takes the smaller lift
- * because the picker drops to bottom: 16px at this tier. */
+/* MOBILE — ≤600px. The inquiry shows as a CTA pill (see .home-inq mobile rules
+ * further down) at bottom:72px, so the blurb lifts to 122px to clear it. Stack
+ * bottom-up: look-console (16px) → inquiry CTA (72px) → blurb (122px). */
 @media (max-width: 600px) {
-  .home-cred { display: none; }
   .home-blurb {
-    bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(122px + env(safe-area-inset-bottom, 0px));
   }
   .home-blurb p {
     font-size: 11px;
@@ -2864,9 +2864,129 @@ html.is-scrolled .masthead {
   .home-inq-dot { animation: none; }
 }
 
-/* `.home-cred { display: none }` for narrow viewports lives in the
- * consolidated home-bottom-band cascade above (TIGHT tier, ≤1099px).
- * No standalone mobile rule needed here. */
+/* Sheet machinery is mobile-only; inert on desktop, where the form is inline.
+ * The panel is a transparent wrapper (display: contents) so the form stays a
+ * direct flex child of .home-inq exactly as before. */
+.home-inq-trigger,
+.home-inq-backdrop,
+.home-inq-handle,
+.home-inq-close { display: none; }
+.home-inq-panel { display: contents; }
+
+/* MOBILE (≤600px) — the hero bottom is too tight for an always-open form, so
+ * show a compact CTA pill above the look-console; tapping it raises the same
+ * form in a bottom sheet, matching the look-console's sheet language. */
+@media (max-width: 600px) {
+  /* Un-hide the inquiry (overrides the MOBILE-tier `.home-cred { display:none }`
+   * via the extra .home-inq class) and strip the desktop corner chrome. */
+  .home-cred.home-inq {
+    display: block;
+    left: 16px;
+    right: 16px;
+    bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+    width: auto;
+    padding: 0;
+    border-top: 0;
+    text-align: center;
+    transform: none;
+    /* Above the look-console pill (z-index 6): the open sheet + backdrop live
+     * inside this container, so the container itself must outrank the console,
+     * otherwise the console pokes through the bottom of the sheet. */
+    z-index: 8;
+  }
+  .home-inq::before { display: none; } /* corner scrim — not used for the pill */
+
+  .home-inq-trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid var(--hair);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    box-shadow: 0 10px 30px -20px rgba(10, 14, 20, 0.3);
+    font: 500 11.5px/1 var(--font-mono), monospace;
+    letter-spacing: 0.01em;
+    color: var(--ink);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .home-inq-trigger-arr { color: var(--ink-3); }
+
+  .home-inq-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 6;
+    border: 0;
+    padding: 0;
+    background: color-mix(in srgb, var(--ink) 40%, transparent);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+  .home-inq.is-open .home-inq-backdrop { opacity: 1; pointer-events: auto; }
+
+  /* Panel → bottom sheet. top:auto is the same iOS position-resolver defence
+   * used on the masthead + look-console sheets. */
+  .home-inq-panel {
+    display: block;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    z-index: 7;
+    padding: 12px 20px calc(26px + env(safe-area-inset-bottom, 0px));
+    text-align: left;
+    background: var(--bg);
+    border-top: 1px solid var(--hair);
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -18px 40px -22px rgba(10, 14, 20, 0.3);
+    transform: translateY(100%);
+    transition: transform 0.32s cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+  .home-inq.is-open .home-inq-panel { transform: translateY(0); }
+
+  .home-inq-handle {
+    display: block;
+    width: 36px;
+    height: 4px;
+    margin: 2px auto 16px;
+    border-radius: 2px;
+    background: color-mix(in srgb, var(--ink) 22%, transparent);
+  }
+  .home-inq-close {
+    display: block;
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    width: 34px;
+    height: 34px;
+    border: 0;
+    background: none;
+    color: var(--ink-3);
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+  }
+  /* 16px inputs so iOS doesn't auto-zoom the viewport on focus. */
+  .home-inq-form { gap: 13px; }
+  .home-inq-input { font-size: 16px; padding: 9px 0; }
+  .home-inq-send { width: 40px; height: 40px; font-size: 16px; }
+  .home-inq-label { font-size: 11px; }
+  .home-inq-done { font-size: 13px; padding: 2px 0 6px; }
+}
+
+/* Short viewports (landscape phones): hide the inquiry along with the other
+ * bottom chrome — overrides the un-hide above (later source order wins). */
+@media (max-height: 520px) {
+  .home-cred.home-inq { display: none; }
+}
 
 /* ═════════════════════════════════════════════════════════════════════════
  * LOOK CONSOLE — floating bottom-center picker pill
