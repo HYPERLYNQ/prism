@@ -1,66 +1,38 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import { OWNER_EMAIL, OWNER_GITHUB, OWNER_LOCATION } from "@/lib/siteConfig";
+import { useHoverMenu } from "./useHoverMenu";
 
 /**
- * Contact tab in the masthead. Click → opens a small dropdown with GitHub /
- * Email / Location. Closes on Escape and outside click.
+ * Contact tab in the masthead. Hover/focus reveals a small dropdown with GitHub
+ * / Email / Location — same disclosure behaviour as the Work tab (shared via
+ * useHoverMenu), so all the dropdown tabs open on hover consistently. The
+ * trigger also toggles on click as a touch fallback (unlike Work, it has no
+ * destination to navigate to). Closes on pointer leave, focus-out, and Escape.
  *
- * Client component because of the open state and outside-click handling;
- * the rest of the Masthead stays server-rendered.
+ * Client component for the open state; the rest of the Masthead stays
+ * server-rendered.
  */
 
 type Props = { active?: boolean };
 
 export default function MastheadContact({ active }: Props) {
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
-
-  // Escape closes the menu.
-  useEffect(() => {
-    if (!open) return;
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open]);
-
-  // Click outside the menu closes it.
-  useEffect(() => {
-    if (!open) return;
-    function onClick(e: MouseEvent) {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener("click", onClick);
-    return () => document.removeEventListener("click", onClick);
-  }, [open]);
+  const { open, setOpen, rootProps } = useHoverMenu();
 
   return (
     <div
-      ref={rootRef}
       className={`masthead-contact${open ? " is-open" : ""}${active ? " is-active" : ""}`}
+      {...rootProps}
     >
-      {/* Disclosure pattern (not WAI-ARIA menu). The previous role="menu" +
-          role="menuitem" + aria-haspopup="menu" set the expectation of
-          arrow-key navigation, Home/End, typeahead, and focus-on-first-
-          item-when-opened — none of which is implemented. A screen-reader
-          announcing "menu, 3 items" then finding the arrow keys inert is
-          worse than a plain disclosure region. The trigger keeps
-          aria-expanded; aria-controls now points to the panel's id; the
-          panel itself drops the menu role. */}
+      {/* Disclosure pattern (not WAI-ARIA menu): the trigger keeps
+          aria-expanded and aria-controls; the panel drops the menu role since
+          arrow-key navigation / typeahead aren't implemented. */}
       <button
         type="button"
         className={`masthead-tab masthead-tab-contact${active ? " is-active" : ""}`}
         aria-expanded={open}
         aria-controls="masthead-contact-menu"
-        onClick={(e) => {
-          e.stopPropagation();
-          setOpen((o) => !o);
-        }}
+        onClick={() => setOpen((o) => !o)}
       >
         <span className="masthead-tab-label">Contact</span>
         <span className="masthead-tab-meta">{open ? "−" : "+"}</span>

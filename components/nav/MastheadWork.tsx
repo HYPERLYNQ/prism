@@ -1,19 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { PROJECTS } from "@/lib/projects";
+import { useHoverMenu } from "./useHoverMenu";
 
 /**
- * Work tab in the desktop masthead. Unlike Contact (click-to-toggle), this is a
- * hover/focus-revealed dropdown so visitors can jump straight to a project
- * without first loading the /work index. "Work" itself stays a real link to
- * /work — clicking navigates to the index, hovering reveals the project list.
- *
- * Behaviour:
- *   - Opens on pointer hover and on keyboard focus entering the group.
- *   - Closes on pointer leave (after a short grace so the cursor can travel
- *     the gap into the panel), on focus leaving the group, and on Escape.
+ * Work tab in the desktop masthead. A hover/focus-revealed dropdown (shared
+ * behaviour with Contact via useHoverMenu) so visitors can jump straight to a
+ * project without first loading the /work index. "Work" itself stays a real
+ * link to /work — clicking navigates to the index, hovering reveals the list.
  *
  * Desktop-only by placement: the masthead tabs are hidden at ≤820px, where the
  * hamburger sheet (MastheadMobile) owns the same project list as an accordion.
@@ -30,52 +25,12 @@ type Props = {
 };
 
 export default function MastheadWork({ active, activeProject, count }: Props) {
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
-  // Grace timer so moving the cursor across the trigger→panel gap doesn't drop
-  // the menu (the panel is out of flow, so that gap briefly leaves the root box).
-  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  function cancelClose() {
-    if (closeTimer.current) {
-      clearTimeout(closeTimer.current);
-      closeTimer.current = null;
-    }
-  }
-  function scheduleClose() {
-    cancelClose();
-    closeTimer.current = setTimeout(() => setOpen(false), 140);
-  }
-  useEffect(() => () => cancelClose(), []);
-
-  // Escape closes.
-  useEffect(() => {
-    if (!open) return;
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open]);
+  const { open, rootProps } = useHoverMenu();
 
   return (
     <div
-      ref={rootRef}
       className={`masthead-work${open ? " is-open" : ""}${active ? " is-active" : ""}`}
-      onMouseEnter={() => {
-        cancelClose();
-        setOpen(true);
-      }}
-      onMouseLeave={scheduleClose}
-      // Keyboard: opening on focus-in makes the list reachable by Tab; closing
-      // on focus-out (to an element outside the group) hides it again.
-      onFocus={() => {
-        cancelClose();
-        setOpen(true);
-      }}
-      onBlur={(e) => {
-        if (!e.currentTarget.contains(e.relatedTarget as Node)) setOpen(false);
-      }}
+      {...rootProps}
     >
       <Link
         href="/work"
