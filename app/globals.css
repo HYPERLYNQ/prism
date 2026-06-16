@@ -2602,7 +2602,12 @@ html.is-scrolled .masthead {
 .home-blurb::before {
   content: "";
   position: absolute;
-  inset: -16px -28px -18px -20px;
+  /* Bottom inset is deliberately tight (-4): in the tight tier the inquiry
+   * scrim sits just below this one, and a deep bottom feather would make the
+   * two translucent washes physically overlap (visible against busy debris).
+   * Keeping this edge near the text leaves a clean transparent gap between the
+   * two scrims; the outer edges keep their full feather. */
+  inset: -16px -28px -4px -20px;
   z-index: -1;
   pointer-events: none;
   background: radial-gradient(
@@ -2706,7 +2711,9 @@ html.is-scrolled .masthead {
 .home-cred::before {
   content: "";
   position: absolute;
-  inset: -14px -22px -16px -22px;
+  /* Top inset is tight (-4) so this scrim doesn't reach up into the blurb scrim
+   * stacked above it in the tight tier — see .home-blurb::before. */
+  inset: -4px -22px -16px -22px;
   z-index: -1;
   pointer-events: none;
   background: radial-gradient(
