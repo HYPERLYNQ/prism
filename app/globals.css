@@ -1530,6 +1530,96 @@ body {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
+ * Blog diagrams — brutalist mono schematics embedded in prose. Theme-adaptive
+ * via the ink/hair/bg tokens; monochrome, with an inverted "key" node for
+ * emphasis instead of an accent colour. Built from components/blog/diagrams.tsx.
+ * ──────────────────────────────────────────────────────────────────────── */
+.bd {
+  margin: 2.4em 0;
+  border: 1px solid var(--hair);
+  background: var(--bg-deep);
+}
+.bd-stage {
+  padding: 30px 22px;
+  display: flex;
+  /* Wide flows scroll as one clean row rather than wrapping (which leaves
+   * arrows dangling at the row break). `margin:auto` on the flow centres it
+   * when it fits and collapses to the scroll origin when it overflows. */
+  overflow-x: auto;
+}
+.bd-flow {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  flex-wrap: nowrap;
+  margin: auto;
+}
+.bd-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+}
+.bd-node {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 11px 14px;
+  border: 1px solid var(--hair);
+  background: var(--bg);
+  text-align: left;
+}
+.bd-node.is-key {
+  background: var(--ink);
+  border-color: var(--ink);
+}
+.bd-node-k {
+  font: 500 9px/1.3 var(--font-mono), monospace;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.bd-node.is-key .bd-node-k { color: color-mix(in srgb, var(--bg) 64%, transparent); }
+.bd-node-v {
+  font: 500 12px/1.4 var(--font-mono), monospace;
+  color: var(--ink);
+}
+.bd-node.is-key .bd-node-v { color: var(--bg); }
+.bd-arrow {
+  display: flex;
+  align-items: center;
+  font: 500 15px/1 var(--font-mono), monospace;
+  color: var(--ink-3);
+  flex: 0 0 auto;
+}
+/* Header row inside a comparison column. */
+.bd-head {
+  font: 500 9.5px/1.3 var(--font-mono), monospace;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  padding-bottom: 2px;
+}
+.bd-cap {
+  display: flex;
+  gap: 9px;
+  padding: 11px 14px;
+  border-top: 1px solid var(--hair);
+  font: 500 9.5px/1.45 var(--font-mono), monospace;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.bd-cap-num { color: var(--ink); flex: 0 0 auto; }
+/* Narrow: stack the flow vertically; the → arrows rotate to point down. */
+@media (max-width: 600px) {
+  .bd-stage { padding: 22px 16px; overflow-x: visible; }
+  .bd-flow { flex-direction: column; align-items: stretch; margin: 0; }
+  .bd-flow > .bd-arrow { transform: rotate(90deg); align-self: center; }
+  .bd-node { width: 100%; }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
  * 11. Project pages — narrow-viewport tweaks
  *
  *   • ≤720px (tablet / landscape phone) — single-column banner, single-column

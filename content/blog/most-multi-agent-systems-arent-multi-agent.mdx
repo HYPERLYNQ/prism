@@ -6,6 +6,8 @@ export const metadata = {
   tags: ["LLM", "AI agents", "applied AI", "honest framing", "Anthropic"],
 };
 
+import { PipelineVsAgents } from "@/components/blog/diagrams";
+
 Most products marketing themselves as "multi-agent" aren't multi-agent.
 
 They're multi-stage pipelines with one LLM in a loop. Sometimes deterministic
@@ -17,6 +19,9 @@ engineering manager assumes about how the system works.
 I built one of these tools — [Sonar](/work/sonar), a B2B outreach pipeline —
 and I had to fight the urge to call it multi-agent. This post is the
 explanation I owed myself.
+
+
+<PipelineVsAgents />
 
 ## The actual definitions
 

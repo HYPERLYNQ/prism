@@ -7,6 +7,8 @@ export const metadata = {
   tags: ["RAG", "MCP", "sqlite-vec", "Transformers.js", "local-first", "applied AI"],
 };
 
+import { HybridRetrieval } from "@/components/blog/diagrams";
+
 Most RAG tutorials route your data through OpenAI's embeddings endpoint
 and Pinecone. They work — and they also leak everything you're searching
 to two SaaS vendors and add two API costs.
@@ -18,6 +20,9 @@ pieces wired together inside a Model Context Protocol server.
 
 This post is the stack: what I picked, why each piece earned its place,
 and why the *retrieval algorithm* is the part that actually matters.
+
+
+<HybridRetrieval />
 
 ## What "local" actually means here
 

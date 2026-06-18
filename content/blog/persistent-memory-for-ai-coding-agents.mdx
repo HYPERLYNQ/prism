@@ -6,6 +6,8 @@ export const metadata = {
   tags: ["LLM", "AI agents", "Claude Code", "retrieval", "MCP"],
 };
 
+import { MemoryLifecycle } from "@/components/blog/diagrams";
+
 Every AI coding session starts the same way: from zero. The model has no idea
 what we decided last time, which approach we already rejected, or that the
 "users" table doesn't actually have an `email` column. You re-explain. It
@@ -15,6 +17,8 @@ moment the conversation ends.
 That gap — not raw model capability — is the thing that most often makes an
 agent feel junior. So I built [synaptic](/work/synaptic), a memory layer that
 gives a coding agent context which survives across sessions.
+
+<MemoryLifecycle />
 
 ## The problem isn't the model, it's the amnesia
 
