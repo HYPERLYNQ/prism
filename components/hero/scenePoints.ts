@@ -124,7 +124,17 @@ export function buildPointsLayer(
   heroTintHex: string,
   debrisTintHex: string,
   dpr: number,
+  isMobile = false,
 ): PointsLayer {
+  // Mobile tuning: the wordmark is scaled down to fit a narrow viewport, so the
+  // full-density cloud packs the same point count into a much smaller glyph —
+  // with the min-size floor holding each dot at ~1.8px while the spacing shrinks
+  // below that, the solid cores overlap into a dark, condensed mass. Thin the
+  // clouds and lower both the size floor and the base size so the dots read as
+  // a legible dusting on phones instead of a black blob.
+  const letterSamples = isMobile ? 1024 : LETTER_SAMPLES;
+  const debrisSamples = isMobile ? 230 : DEBRIS_SAMPLES;
+
   const dotTex = makeDotTexture();
   const mkMat = (hex: string, size: number) =>
     new THREE.PointsMaterial({
@@ -136,12 +146,13 @@ export function buildPointsLayer(
       opacity: 0,
       depthWrite: false,
     });
-  const heroMat = mkMat(heroTintHex, 4.0);
-  const debrisMat = mkMat(debrisTintHex, 3.8);
+  const heroMat = mkMat(heroTintHex, isMobile ? 3.2 : 4.0);
+  const debrisMat = mkMat(debrisTintHex, isMobile ? 3.0 : 3.8);
   // Clamp the far tail so neither cloud shrinks to nothing at the parallax
-  // extremes (~1.8 css px floor; gl_PointSize is device px → scale by dpr).
-  applyMinPointSize(heroMat, 1.8 * dpr);
-  applyMinPointSize(debrisMat, 1.5 * dpr);
+  // extremes (gl_PointSize is device px → scale by dpr). The floor is lower on
+  // mobile so small-glyph dots can shrink enough to stop overlapping.
+  applyMinPointSize(heroMat, (isMobile ? 1.2 : 1.8) * dpr);
+  applyMinPointSize(debrisMat, (isMobile ? 1.0 : 1.5) * dpr);
 
   // Wordmark twins — one Points child per letter, on layer 1, hidden by default.
   const letterTwins: THREE.Points[] = [];
@@ -150,7 +161,7 @@ export function buildPointsLayer(
       const cloud = new THREE.BufferGeometry();
       cloud.setAttribute(
         "position",
-        new THREE.BufferAttribute(sampleGeometry(letter.geometry, LETTER_SAMPLES), 3),
+        new THREE.BufferAttribute(sampleGeometry(letter.geometry, letterSamples), 3),
       );
       const pts = new THREE.Points(cloud, heroMat);
       pts.layers.set(1);
@@ -167,23 +178,23 @@ export function buildPointsLayer(
   // Debris cloud — bake every instance into one buffer in group-local space.
   let total = 0;
   for (const mesh of debrisMeshes) total += mesh.count;
-  const positions = new Float32Array(total * DEBRIS_SAMPLES * 3);
+  const positions = new Float32Array(total * debrisSamples * 3);
   const debrisBake: DebrisBakeEntry[] = [];
   const m4 = new THREE.Matrix4();
   const v = new THREE.Vector3();
   let write = 0;
   for (const mesh of debrisMeshes) {
-    const base = sampleGeometry(mesh.geometry, DEBRIS_SAMPLES);
+    const base = sampleGeometry(mesh.geometry, debrisSamples);
     for (let i = 0; i < mesh.count; i++) {
       mesh.getMatrixAt(i, m4);
-      for (let s = 0; s < DEBRIS_SAMPLES; s++) {
+      for (let s = 0; s < debrisSamples; s++) {
         v.set(base[s * 3], base[s * 3 + 1], base[s * 3 + 2]).applyMatrix4(m4);
         positions[write + s * 3] = v.x;
         positions[write + s * 3 + 1] = v.y;
         positions[write + s * 3 + 2] = v.z;
       }
       debrisBake.push({ mesh, instanceId: i, base, writeAt: write });
-      write += DEBRIS_SAMPLES * 3;
+      write += debrisSamples * 3;
     }
   }
   const debrisGeo = new THREE.BufferGeometry();

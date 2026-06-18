@@ -344,8 +344,9 @@ export function useHeroScene(
       depthWrite: false,
     });
     // Match the wordmark twins: floor the far tail so the dissolving cloud
-    // doesn't shrink to nothing at the parallax extremes either.
-    applyMinPointSize(swarmPointsMat, 1.8 * pixelRatio);
+    // doesn't shrink to nothing at the parallax extremes either (lower on mobile
+    // so the small-glyph dots don't overlap into a dark mass).
+    applyMinPointSize(swarmPointsMat, (isMobile ? 1.2 : 1.8) * pixelRatio);
     const swarmPointsGeo = new THREE.BufferGeometry();
     swarmPointsGeo.setAttribute("position", new THREE.BufferAttribute(particles.cur, 3));
     const swarmPoints = new THREE.Points(swarmPointsGeo, swarmPointsMat);
@@ -415,6 +416,7 @@ export function useHeroScene(
         pickContrastInk(heroTintHex),
         pickContrastInk(debrisTintHex),
         pixelRatio,
+        isMobile,
       );
       debrisGroup.add(pointsLayer.debrisPoints);
     }

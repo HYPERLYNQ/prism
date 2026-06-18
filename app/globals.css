@@ -2766,16 +2766,13 @@ html.is-scrolled .masthead {
   }
 }
 
-/* MOBILE — ≤600px. The inquiry shows as a CTA pill (see .home-inq mobile rules
- * further down) at bottom:72px, so the blurb lifts to 122px to clear it. Stack
- * bottom-up: look-console (16px) → inquiry CTA (72px) → blurb (122px). */
+/* MOBILE — ≤600px. The bottom was crammed (blurb + inquiry CTA + look-console
+ * stacked). Drop the value-prop blurb here — the cycling 3D wordmark already
+ * carries the pitch — so the stack is just the inquiry CTA (72px) above the
+ * look-console (16px), which breathes. (Blurb still shows ≥601px.) */
 @media (max-width: 600px) {
   .home-blurb {
-    bottom: calc(122px + env(safe-area-inset-bottom, 0px));
-  }
-  .home-blurb p {
-    font-size: 11px;
-    line-height: 1.6;
+    display: none;
   }
 }
 
@@ -3147,6 +3144,17 @@ body.dark .look-console-panel {
   visibility: visible;
   pointer-events: auto;
   transition: opacity 0.22s ease, transform 0.22s ease;
+}
+/* Focus mode — the picker panel rises from the bottom-centre and, at narrower
+ * widths, reaches into the corner inquiry form (the email field "clashes with
+ * the color picker once opened"). When the picker is open, fade the inquiry so
+ * the panel owns a clean stage; it returns when the picker closes. The inquiry
+ * is a following sibling of .look-console, so `~` reaches it — more robust than
+ * `:has()`, which the CSS pipeline didn't honour. */
+.look-console.is-open ~ .home-cred {
+  opacity: 0 !important;
+  pointer-events: none;
+  transition: opacity 0.22s ease;
 }
 
 /* Mobile — full-width bottom sheet, panel rises from bottom edge instead.
