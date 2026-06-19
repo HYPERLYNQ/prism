@@ -97,32 +97,48 @@ export default function ResumePage() {
 
       <section className="resume-section">
         <p className="resume-summary">
-          Applied-AI engineer. Ship LLM-powered systems to production end-to-end —
+          Applied-AI engineer. Ship LLM-powered systems to production end-to-end:
           multi-stage pipelines, tool-use, structured output, and human-in-the-loop
-          workflows. Solo, production-grade. Open to AI Engineer / FDE roles.
+          workflows. Solo, production-grade. Open to{" "}
+          <span className="nowrap">AI Engineer / FDE roles</span>.
         </p>
       </section>
 
       <section className="resume-section">
         <h2 className="resume-h2">Selected work</h2>
         <ul className="resume-projects">
-          {PROJECTS.map((project) => (
+          {PROJECTS.map((project) => {
+            // The role is "Solo — founder, engineer, shipped to App Store"; the
+            // lead ("Solo") is the load-bearing part. Split off the detail so the
+            // mobile meta line can hide it (it's what wraps), keeping the full
+            // role on desktop / the PDF.
+            const dash = project.role.indexOf("—");
+            const roleLead = dash === -1 ? project.role : project.role.slice(0, dash).trim();
+            const roleDetail = dash === -1 ? "" : project.role.slice(dash + 1).trim();
+            return (
             <li key={project.slug} className="resume-project">
               <div className="resume-project-head">
                 <h3 className="resume-project-name">
                   <a href={`${SITE_URL}/work/${project.slug}`}>{project.name}</a>
                 </h3>
                 <span className="resume-project-meta">
-                  {project.year} · {project.role}
+                  {project.year} · {roleLead}
+                  {roleDetail && (
+                    <span className="resume-project-role-detail"> — {roleDetail}</span>
+                  )}
                 </span>
               </div>
 
-              {(project.status || project.visibility) && (
+              {project.status && (
                 <p className="resume-project-status">
                   {project.status}
-                  {project.status && project.visibility ? " · " : ""}
-                  {project.visibility === "open-source" && "Open source"}
-                  {project.visibility === "private" && "Private · closed-source"}
+                  {/* "Open source" is already implied by an open-source status
+                      string + the repo link, so only the private flag adds
+                      signal (it explains the absent repo). Drops the
+                      "Open source · v1.7.6 · Open source" duplication. */}
+                  {project.visibility === "private" && (
+                    <span className="resume-project-vis"> · Private</span>
+                  )}
                 </p>
               )}
 
@@ -141,7 +157,8 @@ export default function ResumePage() {
                 {project.stack.join(" · ")}
               </p>
             </li>
-          ))}
+            );
+          })}
         </ul>
       </section>
 
@@ -169,7 +186,7 @@ export default function ResumePage() {
             <div className="resume-edu-head">
               <h3 className="resume-edu-school">
                 University of Miami <span className="resume-edu-sep" aria-hidden="true">·</span>{" "}
-                <span className="resume-edu-degree">Bachelor of Science, Entrepreneurship</span>
+                <span className="resume-edu-degree">Bachelor of Business Administration, Entrepreneurship</span>
               </h3>
               <span className="resume-edu-meta">2008–2012 · Miami, FL</span>
             </div>
