@@ -1907,11 +1907,11 @@ body {
   color: var(--ink);
   max-width: 64ch;
   margin: 0;
-  /* Justify so the paragraph reads as a clean rectangular block — inter-word
-   * spacing flexes to keep both edges straight (only the short last line stays
-   * ragged, which is expected). */
-  text-align: justify;
-  text-justify: inter-word;
+  /* Left-aligned, NOT justified: justify forces straight edges by stretching
+   * the word-gaps, which opens into ugly rivers on a narrow phone column (and
+   * looks nothing like the tight desktop column — same setting, different
+   * result by width). Natural spacing reads consistently at every width;
+   * `text-wrap: pretty` below keeps the breaks balanced + orphan-free. */
 }
 .resume .nowrap { white-space: nowrap; }
 /* Let the browser balance wraps and avoid stranding a 1–2 word orphan on its
