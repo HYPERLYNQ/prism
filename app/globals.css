@@ -1907,11 +1907,15 @@ body {
   color: var(--ink);
   max-width: 64ch;
   margin: 0;
-  /* Left-aligned, NOT justified: justify forces straight edges by stretching
-   * the word-gaps, which opens into ugly rivers on a narrow phone column (and
-   * looks nothing like the tight desktop column — same setting, different
-   * result by width). Natural spacing reads consistently at every width;
-   * `text-wrap: pretty` below keeps the breaks balanced + orphan-free. */
+  /* Justified block, made clean on narrow columns by hyphenation: without
+   * `hyphens: auto` the browser can only stretch word-gaps to reach the right
+   * edge (the rivers); WITH it, words break at syllables to pack each line
+   * tight, so the gaps stay even at phone AND desktop widths. (Needs html
+   * lang="en" for the hyphen dictionary, which the site sets.) */
+  text-align: justify;
+  text-justify: inter-word;
+  -webkit-hyphens: auto;
+  hyphens: auto;
 }
 .resume .nowrap { white-space: nowrap; }
 /* Let the browser balance wraps and avoid stranding a 1–2 word orphan on its

@@ -99,8 +99,8 @@ export default function ResumePage() {
         <p className="resume-summary">
           Applied-AI engineer. Ship LLM-powered systems to production end-to-end:
           multi-stage pipelines, tool-use, structured output, and human-in-the-loop
-          workflows. Solo, production-grade. Open to{" "}
-          <span className="nowrap">AI Engineer / FDE roles</span>.
+          workflows. Solo, production-grade. Open to AI Engineer{" / "}FDE
+          roles.
         </p>
       </section>
 
