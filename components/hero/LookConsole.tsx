@@ -132,6 +132,18 @@ export default function LookConsole(props: LookConsoleProps) {
       ref={rootRef}
       className={`look-console${open ? " is-open" : ""}`}
     >
+      {/* Mobile-only scrim — tap to close. On phones the panel is a bottom
+          sheet that can fill the viewport, so the desktop outside-click has no
+          "outside" to hit; this gives a reliable dismiss target. Hidden at
+          desktop widths via CSS. */}
+      <button
+        type="button"
+        className="look-console-backdrop"
+        aria-label="Close picker"
+        tabIndex={-1}
+        onClick={() => setOpen(false)}
+      />
+
       {/* Picker panel rises ABOVE the console button when open. The inner
           rows reuse the .lp-* class names from the original LookPanel so
           the swatch chips/grids inherit their styling.
@@ -152,9 +164,20 @@ export default function LookConsole(props: LookConsoleProps) {
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
       >
-        {/* Drag handle — visual hint for the swipe-down-to-close gesture.
-            Only rendered visible on the mobile bottom-sheet tier via CSS. */}
-        <div className="look-console-handle" aria-hidden="true" />
+        {/* Mobile sheet header: drag handle (swipe-down hint) + an always-
+            visible close button. Sticky so it's reachable even if the picker
+            scrolls. Both are hidden at desktop widths via CSS. */}
+        <div className="look-console-sheet-head">
+          <span className="look-console-handle" aria-hidden="true" />
+          <button
+            type="button"
+            className="look-console-close"
+            aria-label="Close picker"
+            onClick={() => setOpen(false)}
+          >
+            <span aria-hidden="true">×</span>
+          </button>
+        </div>
         <SwatchRow label="finish">
           <div className="lp-chips">
             {FINISHES.map((f) => (

@@ -86,6 +86,10 @@ export function buildAsciiPass(
   height: number,
   dpr: number,
   inkHex: string,
+  /** Scales every band's cell size. <1 packs more (finer) glyphs in — needed on
+   *  mobile, where the wordmark is small and full-size cells leave it too sparse
+   *  to read. */
+  cellScale = 1,
 ): AsciiPass {
   const atlas = buildAtlas();
 
@@ -195,7 +199,7 @@ export function buildAsciiPass(
       const dpr = renderer.getPixelRatio();
       renderer.autoClear = false;
       for (const band of BANDS) {
-        uniforms.uCell.value = band.cell * dpr;
+        uniforms.uCell.value = band.cell * cellScale * dpr;
         uniforms.uBandMin.value = band.min;
         uniforms.uBandMax.value = band.max;
         renderer.render(quadScene, quadCam);

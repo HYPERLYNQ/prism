@@ -304,6 +304,9 @@ export function useHeroScene(
       window.innerHeight,
       pixelRatio,
       pickContrastInk(heroTintHex),
+      // Finer cells on mobile so the small wordmark resolves into enough glyphs
+      // to read (full-size cells left it too sparse).
+      isMobile ? 0.62 : 1,
     );
 
     /* ── debris cloud ──────────────────────────────────────────── */
@@ -545,6 +548,13 @@ export function useHeroScene(
       flagFirstMove();
     }
     function onResize(): void {
+      // iOS Safari fires `resize` during pinch-zoom, and innerWidth/innerHeight
+      // then track the zoomed VISUAL viewport — re-sizing the canvas to those
+      // would collapse the scene into a tiny top-left corner. Skip while the
+      // user is pinch-zoomed (scale != 1); the trailing resize when they reset
+      // zoom (scale back to ~1) re-sizes correctly.
+      const vv = window.visualViewport;
+      if (vv && Math.abs(vv.scale - 1) > 0.01) return;
       const w = window.innerWidth;
       const h = window.innerHeight;
       camera.aspect = w / h;
