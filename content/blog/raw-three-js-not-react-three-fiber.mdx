@@ -1,220 +1,107 @@
 export const metadata = {
   title: "Why my portfolio runs on raw Three.js, not react-three-fiber",
   description:
-    "react-three-fiber is the right default for most React + WebGL projects. For this site it wasn't. Here's what I actually built, the case I made for and against r3f, and the tradeoffs of going raw.",
+    "There's a popular shortcut for building 3D on the web. For this site I skipped it and wrote the graphics by hand. Here's the plain-language case for and against, and why 'the boring default' was the wrong call just this once.",
   date: "2026-05-31",
   tags: ["Three.js", "WebGL", "Next.js", "React", "portfolio", "frontend"],
+  hero: "/blog/raw-three-js-not-react-three-fiber.webp",
 };
 
-import { RenderLoop } from "@/components/blog/diagrams";
 
-This site's hero is a WebGL scene. A 3D wordmark you can scatter with a
-click. A live-rendered blob banner. A camera that follows your cursor on
-desktop and your finger on mobile. It runs on **raw Three.js, not
-react-three-fiber**.
+The homepage of this site has a little 3D scene: my name, built as a real
+3D object you can knock apart with a click, with a camera that drifts toward
+your cursor as you move it. I built it with graphics code written more or
+less by hand, instead of the popular shortcut most people reach for.
 
-For most React + WebGL projects, that's the wrong choice — and the
-internet will tell you so. For this build, it was the right one. This
-post is the reasoning, including the parts where I was almost wrong.
+For most projects that's the wrong choice, and the internet will happily
+tell you so. For this one it was right. Here's the reasoning — including the
+parts where I nearly talked myself out of it.
 
 
-<RenderLoop />
+## What's actually on the screen
 
-## What the hero actually does
+Before defending the *how*, here's the *what*:
 
-Before defending the choice, here's the scene under it:
+- My name as a 3D object. Click it and the letters scatter like
+  knocked-over blocks, then settle back into place.
+- A camera that gently follows your cursor — or your finger, on a phone — so
+  the scene feels alive without being twitchy.
+- A slow-drifting "blob" banner that quietly switches itself off when it
+  scrolls out of view, so it isn't draining your battery for nothing.
 
-- A 3D wordmark (`mike vidal`) built from extruded glyphs, sitting in a
-  Three.js scene at a calibrated camera distance
-- Click any glyph and the letters scatter on a physics impulse, then
-  re-form
-- A subtle parallax — the camera follows the cursor on desktop and the
-  touch position on mobile, with a damped lerp so the motion is smooth
-  not snappy
-- A blob banner rendered as a custom shader, paused via
-  `IntersectionObserver` when offscreen so the GPU isn't lit up for
-  nothing
-- All driven by a single `useHeroScene` React hook that owns the
-  canvas, the scene graph, the animation loop, the resize listener, and
-  the input handlers
+All of it runs from one tidy, self-contained piece of code.
 
-The component file is 135 lines. The scene hook is 611. The whole hero
-ships as one TSX module and one hook — no scene graph in JSX, no React
-component for each mesh.
+## The popular shortcut, and why it's usually right
 
-## The case for react-three-fiber
+There's a hugely popular tool for building 3D on the web. Think of it as a
+*kit*: it handles the fiddly bookkeeping, tidies up after itself when things
+come and go, and ships with a big box of ready-made parts. For almost any 3D
+project — especially one with lots of moving pieces a visitor can rearrange
+— it's the right call, and I'd recommend it without blinking. The cleanup it
+does for you is real work I've spent hours doing by hand.
 
-I want to make the steelman first, because react-three-fiber is *very
-good* and the default answer for any React + WebGL project should
-usually be "use r3f."
+<figure>
+<img loading="lazy" decoding="async" src="/blog/three-js-kit.webp" alt="A flat-pack kit of glowing geometric parts laid out, waiting to be assembled" />
+</figure>
 
-- **Declarative scene graph.** You describe meshes, cameras, and lights
-  as JSX. React's diffing handles add/remove/update. No more "did I
-  remember to `scene.remove(mesh)`?" bugs.
-- **Lifecycle management.** Mounting and unmounting components disposes
-  their Three.js resources. You don't manually track geometries,
-  materials, textures for `.dispose()` calls.
-- **The ecosystem.** `drei` gives you ten free utility components
-  (`OrbitControls`, `Text`, `Environment`, `useGLTF`). r3f gives you
-  hooks like `useFrame` and `useThree` that fit React mental models.
-- **Composition.** A scene built from React components is recombinable
-  the way Three.js objects in imperative code are not.
+## Why this one was the exception
 
-For most projects — anything you'd hire a contractor to build — r3f is
-the right call. The bookkeeping it eliminates is real bookkeeping I've
-spent hours debugging.
+Three reasons, in order of how much each mattered:
 
-## Why this build was the exception
+**1. The scene is basically one thing.** It's my name, a camera, and some
+lighting. The kit's big advantage is wrangling *lots* of pieces at once.
+When there's really only one, the kit becomes overhead instead of help.
 
-Three reasons, in order of how much each one weighed:
+**2. The animation is custom.** I wanted very specific behavior — pausing
+cleanly when off-screen, a particular camera drift, an exact "knock the
+letters apart and reassemble" effect. With the kit you end up constantly
+reaching *around* it to get that, at which point you may as well just write
+it yourself.
 
-### 1. The scene is essentially one object
+**3. I'm on brand-new versions of everything.** This site runs on
+bleeding-edge tools, and stacking another layer on top was one more thing to
+fight whenever something broke. I'd rather own all of it than spend my time
+debugging someone else's bridge between two fast-moving pieces.
 
-The hero isn't a complex composable scene with twenty draggable
-components. It's a wordmark, a camera, lights, and one shader plane.
-Everything lives inside one self-contained module. r3f's biggest win —
-declarative composition over a complex scene graph — doesn't apply
-when the scene graph is small and stable.
+<figure>
+<img loading="lazy" decoding="async" src="/blog/three-js-handbuilt.webp" alt="A craftsman carving a glowing geometric crystal by hand" />
+</figure>
 
-If I were building a configurator with dozens of meshes the user can
-add and remove, r3f wins. For one wordmark plus a banner, the JSX layer
-is overhead, not leverage.
+## The tradeoff, plainly
 
-### 2. The animation loop is bespoke
+Doing it by hand isn't free:
 
-Standard r3f gives you `useFrame((state, delta) => {...})` and trusts
-its internal loop. That works for declarative scenes. It does *not*
-work as well when you want:
+- **It's more code.** Every little behavior is mine to write.
+- **I have to clean up after the scene myself.** The kit does that for you
+  automatically; forget a step doing it by hand and you get a slow leak.
+- **I gave up the box of ready-made parts.** Anything extra, I wire up
+  myself.
 
-- A custom `THREE.Timer` (not r3f's clock) for accurate delta tracking
-  across pause/resume
-- An `IntersectionObserver`-gated render path that fully skips frames
-  when the canvas is offscreen
-- A damped camera follow that reads its own state across frames without
-  going through React state
-- A pointer-down hit test against the wordmark using `Raycaster`
-  directly
+For most projects, that list outweighs the wins. For a single hand-built
+centerpiece that loads once and just sits there, it doesn't.
 
-You can do all of this in r3f. You just end up reaching past the
-abstraction often enough that you're paying for the abstraction in
-indirection while not getting its benefits. At some point you should
-just write the animation loop yourself.
+## When to go hand-built yourself
 
-### 3. React 19 and Next 16 quirks
-
-This site is on Next.js 16 with React 19 and Turbopack — a stack where
-some libraries are still catching up. r3f works, but the combination of
-React 19's stricter effects, Turbopack's HMR edges, and r3f's own state
-machine produced enough subtle hydration friction in the prototype that
-I decided I'd rather own the Three.js code than diagnose someone else's
-bridge to it.
-
-That's not a judgement on r3f. It's a "if I'm going to debug WebGL on a
-bleeding-edge React stack anyway, I'd rather have one stack to debug,
-not two."
-
-## What raw Three.js actually looks like
-
-The pattern: one custom hook (`useHeroScene`) takes a ref to a
-`<canvas>` element and is responsible for everything inside it.
-
-```tsx
-function Hero() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  useHeroScene(canvasRef);
-  return <canvas ref={canvasRef} />;
-}
-```
-
-Inside `useHeroScene`, in plain Three.js:
-
-```ts
-useEffect(() => {
-  const canvas = ref.current!;
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-  const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(...);
-
-  // build the wordmark, materials, lights
-  // attach pointermove, touchmove, resize listeners
-  // start the animation loop with THREE.Timer
-
-  return () => {
-    // dispose geometries, materials, textures
-    // disconnect IntersectionObserver
-    // remove event listeners
-    // cancelAnimationFrame
-    renderer.dispose();
-  };
-}, []);
-```
-
-The whole component is a render-once `<canvas>`. React doesn't see
-inside. The hook owns mount and unmount. There are no r3f-style state
-machines or Suspense bridges between React's tree and the scene graph.
-
-The cost is real: you write the dispose path yourself, and if you
-forget one geometry or material it leaks. For a long-running app that
-mounts and unmounts the scene many times, that gets dangerous fast. For
-a static hero that mounts once when the page loads, the dispose path is
-a single `useEffect` cleanup and you get to verify it visually with
-DevTools' WebGL counters.
-
-## What I'd warn you about
-
-If you're tempted to follow this pattern:
-
-- **You will write more code than r3f users.** Every animation loop,
-  every dispose call, every event listener is yours. Probably 30–40%
-  more lines for an equivalent scene.
-- **Your TypeScript will be uglier.** Three.js's types are accurate but
-  verbose. JSX with `<mesh geometry={...} material={...} />` reads
-  cleaner than `const mesh = new THREE.Mesh(geo, mat); scene.add(mesh);`.
-- **HMR is harder.** Hot-reloading a scene during development means
-  rebuilding it on every save. r3f does this for you. Raw Three.js
-  needs you to think about state preservation explicitly.
-- **You give up the ecosystem.** No `drei`. No
-  `OrbitControls`-as-component. Want a postprocessing pipeline? You're
-  wiring `EffectComposer` by hand.
-- **Performance optimization gets manual.** r3f's `<Instances>`,
-  `<Detailed>`, and frustum culling helpers exist for a reason. Without
-  them you reach for those Three.js primitives directly when you need
-  them.
-
-For most projects, that list is bigger than the wins. For this site, it
-wasn't.
-
-## When raw Three.js is the right call
-
-Specifically:
-
-- The scene is *one main object* with custom behavior, not a complex
-  composable scene graph
-- You're integrating non-Three timing (`Timer`, `IntersectionObserver`,
-  WebAudio sync, etc.) and reaching past `useFrame` constantly
-- You're already on a bleeding-edge React stack and you don't want a
-  second framework's quirks layered on top
-- The scene mounts once and stays mounted, so the dispose path is
-  bounded
-- You care about the bundle and don't want r3f + drei + their deps
-  shipped to every page
-
-Otherwise, use r3f. It's better at the general case for a reason.
+Skip the kit only when all three are true: your scene is really *one*
+custom thing, you need specific behavior the kit fights you on, and it loads
+once rather than constantly appearing and disappearing. Otherwise, use the
+kit. It's better at the everyday case for a reason.
 
 ## The takeaway
 
-Picking raw Three.js wasn't a stance against react-three-fiber. It was
-a read of *this scene*, on *this stack*, with *this performance
-budget*. The right framework choice is the one that disappears at the
-job you actually need to do.
+Choosing the hand-built route wasn't a stance against the popular tool. It
+was a read of *this* scene, on *this* setup. The right tool is the one that
+disappears at the exact job in front of you.
 
-If your hero is a wordmark, a banner, and a custom camera, raw
-Three.js disappears nicely. If your hero is a configurator with twenty
-meshes the user assembles, r3f disappears nicely. Pick the one that
-makes the code for *your* hero shorter.
+If your centerpiece is one crafted object, hand-built code disappears
+nicely. If it's a thing with twenty parts your visitors assemble, the kit
+disappears nicely. Pick whichever one makes *your* code shorter.
 
 ---
 
-The hero code lives at
-[`components/hero/useHeroScene.ts`](https://github.com/HYPERLYNQ/prism/blob/main/site/components/hero/useHeroScene.ts)
-on GitHub. The scene mounts on the home page — scroll up to see it.
+**For the technically curious:** this is raw Three.js, no react-three-fiber.
+One `useHeroScene` hook owns the canvas, the render loop, and the resize and
+pointer handlers; the scene pauses via `IntersectionObserver` when
+off-screen, keeps time with `THREE.Timer`, and resolves clicks with a
+`Raycaster`. The code is
+[on GitHub](https://github.com/HYPERLYNQ/prism/blob/main/site/components/hero/useHeroScene.ts).

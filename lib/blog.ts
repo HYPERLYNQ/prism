@@ -23,6 +23,8 @@ export type PostMeta = {
   updated?: string;
   /** Topic tags (also rendered + used as keywords). */
   tags?: string[];
+  /** Optional hero image (path under /public), shown at the top of the post. */
+  hero?: string;
 };
 
 export type LoadedPost = {

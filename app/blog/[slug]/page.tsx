@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPost, getPostSlugs } from "@/lib/blog";
@@ -83,6 +84,19 @@ export default async function BlogPost({ params }: { params: Promise<RouteParams
               )}
             </div>
           </header>
+
+          {meta.hero && (
+            <figure className="blog-hero">
+              <Image
+                src={meta.hero}
+                alt=""
+                width={1600}
+                height={900}
+                priority
+                sizes="(max-width: 760px) 100vw, 720px"
+              />
+            </figure>
+          )}
 
           <div className="blog-prose">
             <Content />

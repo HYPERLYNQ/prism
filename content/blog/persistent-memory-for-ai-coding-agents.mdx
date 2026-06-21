@@ -1,76 +1,80 @@
 export const metadata = {
   title: "Why AI coding agents need persistent memory",
   description:
-    "AI coding agents start every session from zero. Here's why that's the real bottleneck — and how I built file-based, hybrid-retrieval memory to fix it.",
+    "An AI coding assistant starts every conversation from zero. That, not raw intelligence, is what most often makes it feel junior. Here's why, and how I gave one a memory that survives between sessions.",
   date: "2026-05-22",
   tags: ["LLM", "AI agents", "Claude Code", "retrieval", "MCP"],
+  hero: "/blog/persistent-memory-for-ai-coding-agents.webp",
 };
 
-import { MemoryLifecycle } from "@/components/blog/diagrams";
 
-Every AI coding session starts the same way: from zero. The model has no idea
-what we decided last time, which approach we already rejected, or that the
-"users" table doesn't actually have an `email` column. You re-explain. It
-re-suggests the thing that didn't work. The context you built up evaporates the
-moment the conversation ends.
+Every time you open a fresh conversation with an AI coding assistant, it
+starts from nothing. It doesn't remember what you decided yesterday, the
+approach you already tried and threw out, or that your "users" list doesn't
+actually have an email field. So you explain it all again. And it cheerfully
+suggests the exact thing that didn't work last time.
 
-That gap — not raw model capability — is the thing that most often makes an
-agent feel junior. So I built [synaptic](/work/synaptic), a memory layer that
-gives a coding agent context which survives across sessions.
+That gap — not how smart the model is — is what most often makes an AI
+assistant feel junior. So I built [synaptic](/work/synaptic): a memory that
+lets a coding assistant carry what it learned in one session into the next.
 
-<MemoryLifecycle />
 
-## The problem isn't the model, it's the amnesia
+## It's not the brains, it's the amnesia
 
-A capable model with no memory behaves like a brilliant contractor with
-no notebook. It can reason about anything in front of it, but it can't
-*accumulate*. Decisions, corrections, and hard-won project facts — the columns
-that don't exist, the deploy command, the convention you settled on — all live
-only in the current chat window. Close it and they're gone.
+A sharp model with no memory is like a brilliant contractor who never
+writes anything down. It can work out whatever's in front of it, but it
+can't *build up* knowledge. Every decision, every correction, every
+hard-won detail about your project lives only inside the current chat.
+Close the window and it's gone.
 
-The usual workarounds don't scale: pasting the same context every time, or
-stuffing a giant instructions file that the model half-reads. What you actually
-want is for the *relevant* prior context to show up automatically, and nothing
-else.
+The usual workarounds don't really scale: paste the same background in
+every time, or keep one giant "read this first" document the assistant only
+half-reads. What you actually want is for the *relevant* past context to
+show up on its own — and nothing else to.
 
-## What I built
+<figure>
+<img loading="lazy" decoding="async" src="/blog/persistent-memory-notebook.webp" alt="An open notebook with softly glowing pages, notes and diagrams just visible" />
+</figure>
 
-synaptic captures three kinds of records to disk and recalls the relevant ones
-at the start of a new session:
+## What it remembers
 
-- **Decisions** — what we chose and why.
-- **Corrections** — when I told the agent it was wrong (so it stops repeating it).
-- **Project facts** — the mundane truths that get lost between sessions: schema
-  details, routes, env setup, test credentials.
+synaptic writes down three kinds of things, and pulls the relevant ones
+back when a new session starts:
 
-It runs as an [MCP](https://modelcontextprotocol.io) server with save / search /
-session tools, so the agent reads and writes memory itself, in the loop.
+- **Decisions** — what we chose, and why.
+- **Corrections** — the moments I told it it was wrong, so it stops making
+  the same mistake.
+- **Project facts** — the boring truths that always get lost between
+  sessions: which field actually exists, the command to deploy, the way we
+  name things.
 
-## Why hybrid retrieval
+The assistant saves and recalls these itself, as it works. You don't manage
+it.
 
-Recall is the whole game — surface the wrong memories and you've just added
-noise. So retrieval is hybrid:
+## Getting the *right* memories back
 
-- **BM25 keyword search** for exact terms (a function name, a table, a flag).
-- **Semantic vector search** for meaning ("how do we handle auth?" matching a
-  note phrased differently).
+Recall is the entire game. Surface the wrong memories and you've just added
+noise. So synaptic looks two ways at once — by the exact words *and* by
+meaning — then blends the results, so a search for "how do we handle
+logins?" still finds the note you actually wrote as "authentication flow."
+(I wrote a separate, plain-language piece on [how that local search
+works](/blog/local-rag-sqlite-vec-transformers-js-mcp).) It all runs on your
+own machine, which for a tool reading your private project isn't optional.
 
-Both run locally — vectors via `sqlite-vec` and embeddings via Transformers.js —
-so there's no cloud dependency and nothing leaves the machine. For a tool that's
-reading your codebase's private context, local-only isn't a nice-to-have.
+## What it refuses to do
 
-## What it doesn't do (on purpose)
-
-It's not a "second brain" that hoards everything — that just recreates the noise
-problem on disk. It saves deliberately (decisions, corrections, facts), and it's
-a single retrieval pipeline, not a swarm of agents coordinating. The value is in
-*what* gets remembered and *when* it resurfaces, not in architectural drama.
+It's deliberately *not* a "second brain" that hoards everything — that just
+rebuilds the same noise problem on your hard drive. It saves on purpose:
+decisions, corrections, facts. The value was never in remembering
+everything. It's in remembering the *right* things, and bringing them back
+at the *right* moment.
 
 ## The takeaway
 
-Most "make the agent smarter" effort goes into prompting and model choice. A
-surprising amount of the felt improvement comes from something more boring:
-letting it remember. If your agent keeps relearning the same things, the fix
-probably isn't a bigger model — it's a notebook.
+Most of the effort to "make the AI smarter" goes into fancier prompts and
+bigger models. A surprising amount of the real improvement comes from
+something far more boring: letting it remember. If your assistant keeps
+relearning the same things, you probably don't need a bigger model. You
+need a notebook.
 
-synaptic is open source. You can read more on the [project page](/work/synaptic).
+synaptic is open source — more on the [project page](/work/synaptic).

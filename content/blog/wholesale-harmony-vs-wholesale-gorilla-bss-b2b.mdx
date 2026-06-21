@@ -1,40 +1,53 @@
 export const metadata = {
-  title:
-    "Wholesale Harmony vs Wholesale Gorilla vs BSS B2B: I read every 1-star review so you don't have to",
+  title: "I read every 1-star review of the top Shopify wholesale apps",
   description:
-    "I built a scraper that read every 1- and 2-star review of the biggest Shopify wholesale apps, plus the wholesale threads on r/shopify and the Shopify Community. After 100+ negative posts, the same six stories kept showing up.",
+    "I built a scraper that read every 1- and 2-star review of the biggest Shopify wholesale apps, plus the wholesale threads on Reddit and the Shopify forums. After 100+ angry posts, the same six stories kept showing up.",
   date: "2026-05-30",
   tags: ["Shopify", "B2B", "wholesale", "competitive research", "product"],
+  hero: "/blog/wholesale-harmony-vs-wholesale-gorilla-bss-b2b.webp",
 };
 
-I run a Shopify wholesale app called [Wholesale Harmony](/work/wholesale-harmony).
-To understand my competition, I built a scraper that read every 1- and 2-star
-review of the four biggest Shopify wholesale apps, plus the wholesale threads
-on r/shopify and the Shopify Community forum.
+I run a Shopify wholesale app called [Wholesale
+Harmony](/work/wholesale-harmony). To really understand my competition, I
+built a little scraper that read every 1- and 2-star review of the biggest
+Shopify wholesale apps, plus the wholesale threads on Reddit and the Shopify
+Community forum.
 
-After 100+ negative posts, the same six stories kept showing up.
+After more than a hundred angry posts, the same six stories kept showing up.
 
-This isn't a takedown — these apps have plenty of happy customers. But the
-failure modes are eerily consistent, and worth knowing before you install one.
+This isn't a hit piece — these apps have plenty of happy customers too. But
+the ways they fail are eerily consistent, and worth knowing *before* you
+install one.
 
-## The method
+Full disclosure before I name names: mine isn't a clean sweep either.
+Wholesale Harmony fixes the uninstall mess and the can't-see-prices bug, and
+it actually emails your customers — but it doesn't do fraud screening,
+certificate expiry, or sales-rep ordering. When a complaint below lands on a
+gap mine shares, I'll say so.
+
+## How I did it
 
 Four App Store apps — <a href="https://apps.shopify.com/wholesale-gorilla" rel="nofollow noopener" target="_blank">Wholesale Gorilla</a>,
 <a href="https://apps.shopify.com/b2b-solution-custom-pricing" rel="nofollow noopener" target="_blank">BSS B2B Solution</a>,
-Wholesale Pricing Discount, Personalized Every Customer — plus r/shopify and
-the Shopify Community forum. No cherry-picking: every 1- and 2-star review of
-the two biggest apps, every wholesale-relevant Reddit thread I could find. The
-scraper is part of [Sonar](/work/sonar), an outreach tool I built for my own app.
+Wholesale Pricing Discount, and Personalized Every Customer — plus the
+wholesale threads on Reddit and the Shopify forum. No cherry-picking: every
+1- and 2-star review of the two biggest apps, and every wholesale-relevant
+Reddit thread I could find. (The scraper is part of [Sonar](/work/sonar), an
+outreach tool I built for my own app.)
 
-Qualitative pattern-spotting, not statistics. Quotes use the merchant's App
-Store handle so you can verify each one.
+This is pattern-spotting, not statistics. Every quote keeps the merchant's
+real App Store handle so you can go verify it yourself. Six patterns. Here
+they are.
 
-Six patterns. Here they are.
+<figure>
+<img loading="lazy" decoding="async" src="/blog/wholesale-reviews-wall.webp" alt="A dark wall of glowing review cards and star ratings, a scattered few burning green" />
+</figure>
 
-## Pattern 1 — The app keeps charging you after you uninstall
+## Pattern 1 — It keeps charging you after you uninstall
 
-This one is visceral and it's everywhere. Merchants uninstall, get charged
-anyway, and find leftover code in their theme they're afraid to remove.
+This one is visceral, and it's everywhere. Merchants uninstall, get billed
+anyway, and find leftover code stuck in their store that they're scared to
+touch.
 
 > *"Beware — this app charges you even after you have uninstalled it."* — Test Co (Wholesale Gorilla, ★1)
 
@@ -42,32 +55,24 @@ anyway, and find leftover code in their theme they're afraid to remove.
 > unsubscription (but suggested I hire a coder to ensure they hadn't left any
 > code on my site). They are still taking payment 2 months..."* — femalechoice.pk (Wholesale Gorilla, ★1)
 
-> *"I uninstalled the app but it keeps charging me."* — Bebea (BSS B2B Solution, ★1)
+The root cause is technical but simple: older wholesale apps write their own
+code straight into your store's theme. When you uninstall, Shopify can
+remove the app's settings, but it can't clean up code the app scribbled into
+your live theme. That leftover is the original sin.
 
-> *"Their uninstall instructions only remove partial code, with warnings that
-> removing more code could break the website."* — Heater and Spa Parts (Wholesale Gorilla, ★2)
-
-The technical root cause: older wholesale apps inject Liquid into your theme.
-Shopify's uninstall webhook removes the app's settings, but it can't clean up
-code the app wrote into your living theme. Theme injection is the original sin.
-
-Before installing any wholesale app, ask where its runtime logic lives. If the
-answer is "we inject Liquid," you're signing up for an uninstall project. If
-the answer is "Shopify Functions and App Bridge blocks," Shopify cleans it up
-for you.
+So before you install any wholesale app, ask one question: where does its
+logic live? If the answer is "we add code to your theme," you're signing up
+for an uninstall project down the road. If it's "we use Shopify's own
+building blocks," Shopify cleans up after it for you.
 
 ## Pattern 2 — Support is a black hole
 
 The single most common complaint. Not "support was rude" — support just
-doesn't reply. For days. For weeks.
+*doesn't answer*. For days. For weeks.
 
 > *"I sent an original email 9 days ago and 3 emails asking if anyone will
 > respond and to this day, NO RESPONSE. I am going to be looking to switch. I
 > can't rely on a service with no support."* — LXB Wholesale (Wholesale Gorilla, ★2)
-
-> *"The support doesn't respond — we've sent multiple requests... unless
-> Wholesale Gorilla support starts to respond, we have been 'helpless'. We have
-> wholesale customers waiting for their orders."* — Ketosource (Wholesale Gorilla, ★1)
 
 > *"Onboarding is a nightmare with an extremely poor customer support assigned
 > to us... Odd working hours and hour long breaks during working hours, we wake
@@ -75,62 +80,48 @@ doesn't reply. For days. For weeks.
 > running, on the BSS team timezone, with no success. It's been almost a week
 > trying to configure this."* — Labo Mono (BSS B2B Solution, ★2)
 
-> *"I ASK OVER AND OVER FOR HELP!!!! ITS LOOK OK WHEN I START BUT NOBODY HELP
-> ME UNTIL TODAY I SEND 4-7 MAILS."* — Me369 (Wholesale Gorilla, ★1)
+Labo Mono names the cause: a timezone gap. Support on one side of the world,
+the merchant on the other, one overlapping hour a day. Wholesale setup is
+fiddly and multi-step — if every question takes a full day to get answered, a
+two-day setup turns into a two-week ordeal.
 
-Labo Mono's review names the structural cause: timezone gap. Support in one
-country, merchant in another, one overlapping window per day. Wholesale
-onboarding is a multi-step config. If the support loop runs 24+ hours per
-question, a two-day setup becomes a two-week ordeal.
+## Pattern 3 — Your customers can't see their own prices
 
-## Pattern 3 — Your customers can't see their wholesale prices
-
-This is the one that costs merchants real revenue. The wholesale customer is
-logged in, the app shows the right price in the admin, and the storefront
-shows retail.
+This is the one that costs real money. The wholesale customer is logged in,
+the admin shows the right price, and the storefront stubbornly shows retail.
 
 > *"Customers cannot see wholesale pricing. Lost customers over it."* — Da Bomb! Bath Co (Wholesale Gorilla, ★2)
-
-> *"If you want your customers to see the discount when they shop you have to
-> do another upgrade. There is not ONE application that has been offered for
-> this that is straight forward. You all want to take our money before its even
-> working. Disgraceful."* — Empire Baked Goods (Wholesale Gorilla, ★1)
-
-> *"Prices are linked with B2C prices and get double discounted due to B2C tax
-> being applied to B2B prices. Awful."* — Poco Nido (Wholesale Gorilla, ★1)
 
 > *"The app keeps making errors when displaying prices. Additionally, handling
 > VAT is a problem, since there are many different VAT rates across Europe,
 > which has repeatedly caused issues with calculating the net price."* —
 > Hundebrille.eu (BSS B2B Solution, ★2)
 
-Hundebrille's review is worth reading whole. They ran the app for seven
-months before switching, because the bug only surfaced once they expanded
-past one country. The brutal version: the app "works" during a single-country
-trial, and breaks under multi-region tax.
+Hundebrille's story is the telling one: they ran the app for seven months
+before giving up, because the bug only appeared once they expanded into more
+countries. The blunt version — the app "works" during a single-country trial
+and quietly breaks the moment real-world tax rules show up.
 
-## Pattern 4 — Every important feature is one more upgrade
+## Pattern 4 — Every feature you need is one more upgrade
 
-The complaint underneath the price complaints. Merchants install, configure,
-and discover the feature they actually need is on the next tier up.
+The complaint hiding under all the price complaints. Merchants install, set
+everything up, and discover the feature they actually came for is on the
+next tier up.
 
 > *"So you have to upgrade to the main one right away. You can add customers
 > and set up a discount. BUT if you want your customers to see the discount
 > when they shop you have to do another upgrade. There is not ONE application
 > that has been offered for this that is straight forward."* — Empire Baked Goods (Wholesale Gorilla, ★1)
 
-> *"It's far too expensive compared to the quality of the app and the service
-> received when problem occurs."* — DogCoach (Wholesale Gorilla, ★1)
+This is about packaging, not capability. The features exist — they're just
+behind paywalls you didn't see on the listing. Whether that's fair is a
+separate argument. The *feeling* it creates is "I paid for an app that
+doesn't do the one thing I installed it for."
 
-This is packaging, not capability. The features exist; they're behind
-paywalls the merchant didn't see on the listing. Whether that's fair is a
-separate question. The experience it creates is: "I paid for an app that
-doesn't do what I installed it for."
+## Pattern 5 — You're the fraud department
 
-## Pattern 5 — You're the fraud screen
-
-Real wholesale merchants get fake applications. People type a made-up business
-name to unlock the wholesale price. The apps don't help.
+Real wholesale merchants get fake applications: people inventing a business
+name to unlock the wholesale price. The apps don't lift a finger to help.
 
 > *"They keep changing the wholesale signup forms and emails... If you don't
 > need to review your wholesale applicants to see if they are fraudulent like
@@ -139,21 +130,21 @@ name to unlock the wholesale price. The apps don't help.
 > a lot of money with this app every month for it to be so extensive and
 > confusing."* — Art by Amy Labbe (Wholesale Gorilla, ★3)
 
-And from Reddit, the related pain is reseller tax-exemption certificates —
-collecting them, validating them, renewing them, storing them for audit:
+And from Reddit, the related headache — reseller tax certificates: collecting
+them, checking them, renewing them, keeping them for an audit:
 
 > *"Validating name/TIN/state match (and catching incomplete/expired certs)...
 > Renewal reminders (so certs don't lapse)... Storing everything in one place
 > for audit exports. How are you doing it right now? Shopify customer tags +
 > files in Drive/Dropbox (manual)?"* — No-Administration635 (r/shopify)
 
-Most wholesale apps stop at "collect a form, auto-tag the customer."
-Everything operationally important — fraud screening, document collection,
-expiry tracking, audit trails — is the merchant's manual work.
+Most apps stop at "collect a form, tag the customer." Everything that
+actually matters — catching fakes, gathering documents, tracking expiry dates,
+keeping records — lands back on the merchant, by hand.
 
 ## Pattern 6 — Sales Rep Hell
 
-I am not making this title up. This is a real Reddit post from April 2026,
+I am not inventing that title. It's a real Reddit post from April 2026,
 titled exactly that:
 
 > *"There's no way (without spending a few bands) to have more than a handful
@@ -166,97 +157,87 @@ titled exactly that:
 > Does anybody here know of a setup under the 80 EUR a month that consistently
 > works for sales reps?"* — Pascal_Human (r/shopify, "Sales Rep Hell")
 
-This is the gap between "B2B for a small merchant" and "B2B for a real
-distributor." Cheaper wholesale apps assume one customer record equals one
-human placing one order. Real wholesale businesses have *companies* —
-multiple humans ordering, sales reps placing orders for customers, account
-managers managing portfolios. The apps that handle this well — SparkLayer,
-Shopify B2B native — charge for it.
+This is the gap between "B2B for a small shop" and "B2B for a real
+distributor." The cheaper apps assume one customer equals one person placing
+one order. Real wholesale runs on *companies* — several people ordering, sales
+reps placing orders for clients, account managers juggling portfolios. The
+apps that handle that well charge accordingly.
 
 ## What the six patterns add up to
 
-Every failure mode is the same shape. The wholesale app was built for the
-simple case — one customer record, one tier, one country, one product-page
-price — and breaks at the operational realities of a real B2B business:
+Every failure is the same shape. The app was built for the simple case — one
+customer, one price tier, one country, one product page — and snaps the
+moment it meets a real B2B business:
 
-- Multiple humans per buyer (sales reps, ordering assistants, AP)
-- Tax compliance across regions
+- More than one human per buyer (reps, assistants, accounts payable)
+- Tax rules across regions
 - Fraud screening on applications
-- Document collection and renewal
-- Clean uninstall when you change your mind
+- Documents to collect and renew
+- A clean exit when you change your mind
 
-The wholesale part is easy. The business-operations part is where the cheap
-apps quietly stop helping, and the merchant ends up in spreadsheets again.
+The "wholesale" part is easy. The *business-operations* part is where the
+cheap apps quietly stop helping and you end up back in a spreadsheet.
 
-## Where Wholesale Harmony fits — honestly
+## Where my app fits — honestly
 
 I built [Wholesale Harmony](/work/wholesale-harmony) for one slice of this:
-customer approval and tiered pricing for non-Plus merchants, with the
-operational details done right.
+customer approval and tiered pricing for smaller merchants, with the
+operational details actually done right.
 
-- **A clean customer-approval dashboard.** When a wholesale applicant submits
-  a registration form, the merchant sees a review queue with the submitted
-  fields (license #, tax ID, business documents) and approves or rejects with
-  one click. Approved customers get tagged and gain access to wholesale
-  pricing automatically.
-- **Custom registration forms with field validation** — license number, tax
-  ID, business documents — so the application form itself does the first
-  pass of vetting.
-- **Shopify Functions for purchase-restriction and pricing**, not theme code
-  injection. Unapproved customers can't reach checkout — enforced at the
-  platform layer. Nothing to clean up if you uninstall.
-- **Embedded Polaris admin app** inside Shopify admin, not a separate
-  dashboard you log into.
+- **A clean approval screen.** When someone applies, you see their submitted
+  details in a review queue and approve or reject in one click.
+- **Signup forms that vet themselves** — license number, tax ID, documents —
+  so the form does the first pass for you.
+- **Customers actually hear back.** Harmony emails them at each step —
+  application received, approved, rejected — so nobody's left wondering, which
+  is the complaint behind a good chunk of the reviews above.
+- **Pricing enforced at Shopify's own level.** Approved customers see their
+  wholesale prices automatically; unapproved ones can't sneak to checkout. It
+  runs on Shopify Functions, not code injected into your theme — so it doesn't
+  double-discount, and there's nothing left stuck in your store when you
+  uninstall (Patterns 1 and 3, handled).
 
-What Wholesale Harmony does **not** do today:
+The gaps I flagged up top still stand: no fraud screening (Pattern 5), no
+certificate-expiry tracking, no sales-rep ordering (Pattern 6), no net-terms
+invoicing. If you need a sales force or net-30, SparkLayer or Shopify's own
+B2B (on Plus) are the honest answers — not Harmony.
 
-- **No multi-user sales-rep ordering.** If your business needs 10+ reps
-  placing orders on behalf of accounts, WH is not the app for that yet.
-  SparkLayer and Shopify's native B2B (on Plus) are the real options.
-- **No automated reseller-cert validation or renewal reminders.** The form
-  collects the cert; tracking and renewals are still on the merchant.
-- **No invoicing or net-terms workflow built in.** WH handles approval and
-  pricing; for net-30 and invoicing, you're still leaning on Shopify B2B
-  native or a separate tool.
+If your wholesale is small to mid-sized and you want approval plus pricing
+done right without theme-code chaos, that's the gap Harmony fills. Better you
+hear the rest from me than after installing.
 
-If your wholesale operation is small to mid-sized, you've hit the patterns
-above, and you want approval + pricing done right without theme-code chaos —
-that's the gap WH fills. If your operation needs a sales force or complex
-invoicing, WH isn't the right primary tool. I'd rather say so now than after
-install.
+## Try Shopify's own B2B first
 
-## Try Shopify native first
+Before you install anything: as of April 2026, Shopify
+[opened its core B2B features to the Basic, Grow, and Advanced
+plans](https://changelog.shopify.com/posts/key-b2b-features-now-available-on-non-plus-plans),
+not just Plus — up to three B2B catalogs, company profiles, payment terms,
+volume pricing, order minimums and case-pack rules, and ACH, at no extra cost.
 
-One update before installing anything. As of April 2026, Shopify
-[opened core B2B features to Basic, Grow, and Advanced plans](https://changelog.shopify.com/posts/key-b2b-features-now-available-on-non-plus-plans) —
-not just Plus. You get up to 3 active B2B catalogs assigned via Markets,
-company profiles, payment terms, volume pricing, ACH payments (US), and
-vaulted credit cards. No additional cost.
+If you already know who your buyers are, start there. For a handful of buyer
+companies with volume pricing and net terms, native does the job and you
+don't need an app at all.
 
-If your wholesale needs are simple — a few buyer companies, basic volume
-pricing, payment terms — try native first. You don't need an app to do
-something Shopify now does built-in.
+Here's the line, though. On these non-Plus plans, native gives you the B2B
+*plumbing* — catalogs, pricing, terms — but no front door. There's no built-in
+way for a stranger to apply on your storefront, hand over a license and tax ID,
+and drop into a review queue you approve from; you create each company
+yourself, by hand. (Shopify Plus has a self-serve company-request flow, but
+it's Plus-only and built on basic Forms.) So if your wholesale runs on
+*inbound* — people finding you and asking to buy at wholesale — that whole
+funnel is what [Wholesale Harmony](/work/wholesale-harmony) is: custom
+validated forms, a merchant review dashboard to approve or reject in one click,
+the emails at each step, and pricing that switches on the moment you approve —
+on a non-Plus store, with no company apparatus to set up.
 
-You've outgrown native when:
+For everything past that — more than three catalogs, net-terms invoicing,
+sales-rep ordering — it's Plus or SparkLayer, not Harmony.
 
-- You need **more than 3 catalogs** or unlimited customer-specific pricing
-  (Plus-only or app).
-- You need a **custom approval workflow** with document upload and a review
-  queue (app).
-- You need **fraud screening on applications** — humans reviewing applicants
-  before they get access (app).
-- You need **multi-user company accounts with sales-rep ordering** (Plus +
-  native B2B, or SparkLayer).
-
-If you fall in "custom approval workflow + tiered pricing without Plus" —
-that's [where Wholesale Harmony lives](/work/wholesale-harmony). If you fall
-elsewhere, the field above is documented and the warnings are quoted.
-
-Either way, you now know what the negative reviews are saying before you
-become one.
+Either way, you now know what the bad reviews are saying *before* you become
+one.
 
 ---
 
-If you're a Wholesale Gorilla or BSS B2B merchant who recognized yourself in
-any of these patterns, I'd be curious which one bit hardest. Reach out at the
-[contact tab](/) above. I read every reply.
+If you're a Wholesale Gorilla or BSS B2B merchant who saw yourself in any of
+these, I'm genuinely curious which one stung the most. Reach out from the
+[contact tab](/) up top — I read every reply.

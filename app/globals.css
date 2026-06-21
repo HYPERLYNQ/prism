@@ -1469,6 +1469,24 @@ body {
   text-transform: uppercase;
   color: var(--ink-3);
 }
+/* Atmospheric hero image at the top of a post — aligned to the prose measure,
+ * framed in the site's hairline-image language. The webp is 16:9 / 1600×900. */
+.blog-hero {
+  max-width: 68ch;
+  margin: 0 0 40px;
+  border: 1px solid var(--hair);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--bg-deep);
+}
+.blog-hero img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+@media (max-width: 600px) {
+  .blog-hero { margin-bottom: 30px; border-radius: 8px; }
+}
 /* The MDX body. Generous measure + rhythm; matches the editorial body type. */
 .blog-prose {
   max-width: 68ch;
@@ -1479,6 +1497,9 @@ body {
   font-size: 16.5px;
   line-height: 1.72;
   color: var(--ink-2);
+  /* Long inline code (`getUserById`), URLs, and unbroken tokens must wrap on
+     narrow screens rather than force a horizontal scroll. */
+  overflow-wrap: break-word;
 }
 .blog-prose > * + * { margin-top: 1.25em; }
 .blog-prose h2 {
@@ -1514,109 +1535,77 @@ body {
   padding: 0.15em 0.4em;
 }
 .blog-prose pre {
-  background: var(--bg-deep, #0e1116);
-  color: #e6edf3;
-  border-radius: 10px;
-  padding: 18px 20px;
+  /* Quiet "code aside", NOT a dark terminal — these are general-audience
+     posts, and a black terminal panel made them read as tech-heavy docs. A
+     faint ink-tinted panel with normal-ink text recedes for a non-technical
+     reader while staying legible for one who wants the detail. Tint + text are
+     both theme tokens, so it works in light and dark. (The old bug was a fixed
+     light code colour on var(--bg-deep), which is cream in light mode.) */
+  background: color-mix(in srgb, var(--ink) 5%, transparent);
+  color: var(--ink);
+  border: 1px solid var(--hair);
+  border-radius: 8px;
+  padding: 16px 18px;
   overflow-x: auto;
-  font: 13.5px/1.6 var(--font-mono), monospace;
+  font: 13px/1.6 var(--font-mono), monospace;
 }
 .blog-prose pre code { background: none; padding: 0; font-size: 1em; }
+/* Review quotes render as tinted "evidence cards" rather than a plain
+   left-rule — they're the receipts the wholesale posts are built on, so they
+   double as the visual rhythm that breaks up otherwise text-heavy articles.
+   Base is upright so the attribution line reads plainly; only the *quoted*
+   span (markdown `*…*` → <em>) stays italic, giving quote-vs-source contrast. */
 .blog-prose blockquote {
-  border-left: 2px solid var(--ink-3);
-  padding-left: 18px;
+  margin: 1.6em 0;
+  padding: 16px 20px;
+  background: var(--bg-deep);
+  border: 1px solid var(--hair);
+  border-radius: 8px;
   color: var(--ink-2);
-  font-style: italic;
+  font-style: normal;
+}
+.blog-prose blockquote > :first-child { margin-top: 0; }
+.blog-prose blockquote > :last-child { margin-bottom: 0; }
+
+/* Section divider (markdown `---`) and in-body figures for the longer posts. */
+.blog-prose hr {
+  border: 0;
+  height: 1px;
+  background: var(--hair);
+  margin: 2.6em 0;
+}
+.blog-prose figure { margin: 2.2em 0; }
+.blog-prose figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  /* Reserve the 16:9 box before the webp loads so in-body images (raw <img>,
+     no intrinsic dimensions) don't shift the layout — a visible jolt on a
+     slow mobile connection. object-fit guards any non-exact source. */
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border: 1px solid var(--hair);
+  border-radius: 10px;
+}
+.blog-prose figcaption {
+  margin-top: 10px;
+  font: 0.78em/1.5 var(--font-mono), monospace;
+  color: var(--ink-3);
+  text-align: center;
 }
 
-/* ─────────────────────────────────────────────────────────────────────────
- * Blog diagrams — brutalist mono schematics embedded in prose. Theme-adaptive
- * via the ink/hair/bg tokens; monochrome, with an inverted "key" node for
- * emphasis instead of an accent colour. Built from components/blog/diagrams.tsx.
- * ──────────────────────────────────────────────────────────────────────── */
-.bd {
-  margin: 2.4em 0;
-  border: 1px solid var(--hair);
-  background: var(--bg-deep);
-}
-.bd-stage {
-  padding: 30px 22px;
-  display: flex;
-  /* Wide flows scroll as one clean row rather than wrapping (which leaves
-   * arrows dangling at the row break). `margin:auto` on the flow centres it
-   * when it fits and collapses to the scroll origin when it overflows. */
-  overflow-x: auto;
-}
-.bd-flow {
-  display: flex;
-  align-items: stretch;
-  gap: 10px;
-  flex-wrap: nowrap;
-  margin: auto;
-}
-.bd-col {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  justify-content: center;
-}
-.bd-node {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  padding: 11px 14px;
-  border: 1px solid var(--hair);
-  background: var(--bg);
-  text-align: left;
-}
-.bd-node.is-key {
-  background: var(--ink);
-  border-color: var(--ink);
-}
-.bd-node-k {
-  font: 500 9px/1.3 var(--font-mono), monospace;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--ink-3);
-}
-.bd-node.is-key .bd-node-k { color: color-mix(in srgb, var(--bg) 64%, transparent); }
-.bd-node-v {
-  font: 500 12px/1.4 var(--font-mono), monospace;
-  color: var(--ink);
-}
-.bd-node.is-key .bd-node-v { color: var(--bg); }
-.bd-arrow {
-  display: flex;
-  align-items: center;
-  font: 500 15px/1 var(--font-mono), monospace;
-  color: var(--ink-3);
-  flex: 0 0 auto;
-}
-/* Header row inside a comparison column. */
-.bd-head {
-  font: 500 9.5px/1.3 var(--font-mono), monospace;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--ink-3);
-  padding-bottom: 2px;
-}
-.bd-cap {
-  display: flex;
-  gap: 9px;
-  padding: 11px 14px;
-  border-top: 1px solid var(--hair);
-  font: 500 9.5px/1.45 var(--font-mono), monospace;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--ink-3);
-}
-.bd-cap-num { color: var(--ink); flex: 0 0 auto; }
-/* Narrow: stack the flow vertically; the → arrows rotate to point down. */
+/* Blog post — small-screen density pass (mobile adapt). Body stays 16.5px for
+   legibility; headings, padding, and the image/quote/code chrome tighten so a
+   phone reader gets content, not chrome. */
 @media (max-width: 600px) {
-  .bd-stage { padding: 22px 16px; overflow-x: visible; }
-  .bd-flow { flex-direction: column; align-items: stretch; margin: 0; }
-  .bd-flow > .bd-arrow { transform: rotate(90deg); align-self: center; }
-  .bd-node { width: 100%; }
+  .blog-prose h2 { font-size: 20px; margin-top: 1.7em; }
+  .blog-prose h3 { font-size: 17px; }
+  .blog-prose figure { margin: 1.8em 0; }
+  .blog-prose blockquote { padding: 14px 16px; margin: 1.4em 0; }
+  .blog-prose pre { padding: 14px; font-size: 12.5px; }
+  .blog-post-head { margin: 8px 0 28px; }
+  .blog-item-title { font-size: 19px; }
+  .blog-item-top { gap: 12px; }
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
