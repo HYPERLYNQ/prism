@@ -56,7 +56,7 @@ export default function MastheadContact({ active }: Props) {
           >
             <span className="masthead-contact-key">EM</span>
             <span className="masthead-contact-val">{OWNER_EMAIL}</span>
-            <span className="masthead-contact-ext" aria-hidden="true">→</span>
+            <span className="masthead-contact-ext" aria-hidden="true">↗</span>
           </a>
           <div className="masthead-contact-item masthead-contact-static">
             <span className="masthead-contact-key">LO</span>

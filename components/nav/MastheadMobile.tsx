@@ -211,7 +211,7 @@ export default function MastheadMobile({ activeTab, activeProject }: Props) {
               <a
                 href={`mailto:${OWNER_EMAIL}?subject=${encodeURIComponent("Re: mikevidal.dev — let's talk")}`}
               >
-                email →
+                email ↗
               </a>
               <span className="masthead-sheet-loc">{OWNER_LOCATION}</span>
             </div>

@@ -253,7 +253,11 @@ body {
 }
 .lp-sw {
   display: grid;
-  grid-template-columns: repeat(7, 14px);
+  /* All 10 SWATCHES on one row on desktop — the panel (≤360px) has room for
+     10×14px + gaps (~203px) beside the 46px label, so there's no reason to
+     wrap to 7+3. The mobile media queries below drop back to 7/6 columns for
+     touch-sized targets in the bottom sheet. */
+  grid-template-columns: repeat(10, 14px);
   gap: 7px;
 }
 
